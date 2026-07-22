@@ -47,6 +47,9 @@
         }
         .tag:hover { opacity: 1; }
 
+        .post-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+        .post-card h3 { margin-bottom: 4px; }
+
         .main-content {
             flex: 1; min-width: 0; padding: 40px 20px; max-width: 840px;
         }
@@ -97,6 +100,7 @@
                         <li><a href="/" data-i18n="home">Home</a></li>
                         <li><a href="/posts" data-i18n="posts">Posts</a></li>
                         <li><a href="/about" data-i18n="about">About</a></li>
+                        <li><a href="/admin.html" style="opacity:0.5;font-size:0.85rem">Admin</a></li>
                     </ul>
                 </nav>
             </section>
@@ -113,14 +117,7 @@
 
             <section>
                 <h3 data-i18n="tags">Tags</h3>
-                <div class="tag-cloud">
-                    <span class="tag">JavaScript</span>
-                    <span class="tag">Python</span>
-                    <span class="tag">CSS</span>
-                    <span class="tag">Linux</span>
-                    <span class="tag">Git</span>
-                    <span class="tag">React</span>
-                </div>
+                <div class="tag-cloud" id="tagCloud"></div>
             </section>
 
             <section>
@@ -129,18 +126,6 @@
                     <li><a href="https://github.com" target="_blank">GitHub</a></li>
                     <li><a href="https://stackoverflow.com" target="_blank">Stack Overflow</a></li>
                 </ul>
-            </section>
-
-            <section>
-                <h3 data-i18n="social">Social</h3>
-                <div class="social">
-                    <ul>
-                        <li><a href="https://space.bilibili.com/1900612720" target="_blank"><img src="/images/bilibili.ico" alt="bilibili" /></a></li>
-                        <li><a href="#" aria-disabled="true" title="Twitter (coming soon)"><img src="/images/twitter.png" alt="twitter" /></a></li>
-                        <li><a href="#" aria-disabled="true" title="Instagram (coming soon)"><img src="/images/instagram.png" alt="instagram" /></a></li>
-                        <li><a href="#" aria-disabled="true" title="LinkedIn (coming soon)"><img src="/images/linkedin.png" alt="linkedin" /></a></li>
-                    </ul>
-                </div>
             </section>
         </aside>
 
@@ -178,6 +163,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         var container = document.getElementById("postList");
+        var tagCloud = document.getElementById("tagCloud");
 
         if (window.location.protocol === "file:") {
             container.innerHTML = "<p>" + tt("local_server") + "</p>";
@@ -194,9 +180,35 @@
                     container.innerHTML = "<p>" + tt("no_posts") + "</p>";
                     return;
                 }
+
+                // Render post cards with tags
                 container.innerHTML = posts.map(function(p) {
-                    return '<article class="post-card"><h3><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></h3><time>' + new Date(p.created_at).toLocaleDateString() + '</time><p>' + esc(p.excerpt || '') + '</p></article>';
+                    var tagsHtml = "";
+                    if (p.tags && p.tags.length) {
+                        tagsHtml = '<div class="post-tags">' +
+                            p.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
+                            '</div>';
+                    }
+                    return '<article class="post-card"><h3><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></h3><time>' + new Date(p.created_at).toLocaleDateString() + '</time>' + tagsHtml + '<p>' + esc(p.excerpt || '') + '</p></article>';
                 }).join("");
+
+                // Build dynamic tag cloud (count tag frequencies)
+                var tagCount = {};
+                posts.forEach(function(p) {
+                    if (p.tags && p.tags.length) {
+                        p.tags.forEach(function(t) {
+                            tagCount[t] = (tagCount[t] || 0) + 1;
+                        });
+                    }
+                });
+                var tags = Object.keys(tagCount).sort();
+                if (tags.length) {
+                    tagCloud.innerHTML = tags.map(function(t) {
+                        return '<span class="tag">' + esc(t) + ' (' + tagCount[t] + ')</span>';
+                    }).join("");
+                } else {
+                    tagCloud.innerHTML = '<span style="opacity:0.5">' + tt("no_posts") + '</span>';
+                }
             })
             .catch(function(err) {
                 console.error(err);
