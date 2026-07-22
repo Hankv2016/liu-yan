@@ -19,22 +19,27 @@
     }
     .container { max-width: 780px; margin: 0 auto; padding: 32px 20px; }
 
-    /* 顶栏 */
     nav {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 40px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 8px;
     }
     nav a { color: var(--text); text-decoration: none; opacity: .7; font-size: .9rem; }
     nav a:hover { opacity: 1; }
     nav .home { font-weight: 600; font-size: 1rem; opacity: 1; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .lang-select {
+      padding: 2px 6px; font-size: 0.8rem;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      outline: none; opacity: 0.7; border-radius: 4px; cursor: pointer;
+    }
+    .lang-select:focus { opacity: 1; }
 
-    /* 文章头部 */
     .post-header { margin-bottom: 36px; }
     .post-header h1 { font-size: 2rem; line-height: 1.3; margin-bottom: 12px; }
     .post-header .meta { color: var(--muted); font-size: .9rem; display: flex; gap: 16px; flex-wrap: wrap; }
     .post-header .tag { padding: 2px 10px; border: 1px solid var(--text); border-radius: 14px; font-size: .8rem; opacity: .6; }
 
-    /* 文章正文 */
     .post-body { word-break: break-word; }
     .post-body h2 { margin: 36px 0 16px; font-size: 1.4rem; }
     .post-body h3 { margin: 28px 0 12px; font-size: 1.15rem; }
@@ -52,10 +57,13 @@
     .post-body a { color: #1a73e8; }
     .post-body ul, .post-body ol { margin: 12px 0; padding-left: 24px; }
     .post-body li { margin-bottom: 4px; }
+    .post-body table { border-collapse: collapse; margin: 16px 0; width: 100%; }
+    .post-body th, .post-body td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .post-body th { background: rgba(128,128,128,.1); }
 
-    /* 加载 / 错误 */
     .loading, .error { text-align: center; padding: 80px 0; color: var(--muted); }
     .error button { margin-top: 16px; }
+    .error a { color: #1a73e8; }
 
     .back-link { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
     .back-link a { color: var(--text); opacity: .6; text-decoration: none; }
@@ -66,58 +74,85 @@
 <div class="container">
   <nav>
     <a href="/" class="home">Hankv2016 Blog</a>
-    <div>
+    <div class="nav-right">
+      <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
+        <option value="en">EN</option>
+        <option value="zh">中文</option>
+      </select>
       <button onclick="toggleTheme()" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:1.1rem">&#9788;/&#9790;</button>
     </div>
   </nav>
 
-  <div id="postContainer" class="loading">Loading...</div>
+  <div id="postContainer" class="loading" data-i18n="loading">Loading...</div>
 
-  <div class="back-link"><a href="/">&larr; Back to Home</a></div>
+  <div class="back-link"><a href="/" data-i18n="back_home">← Back to Home</a></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/i18n.js"></script>
 <script>
+  if (typeof marked !== 'undefined') {
+    marked.setOptions({ breaks: true, gfm: true });
+  }
+
   function toggleTheme() {
-    const r = document.documentElement;
+    var r = document.documentElement;
     r.setAttribute("data-theme", r.getAttribute("data-theme") === "dark" ? "light" : "dark");
   }
 
-  // 从 URL 获取 slug: /post.html?slug=xxx
-  const params = new URLSearchParams(window.location.search);
-  const slug = params.get("slug");
+  function renderContent(content, contentType) {
+    if (contentType === "markdown" && typeof marked !== 'undefined') {
+      return marked.parse(content);
+    }
+    return content;
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var slug = params.get("slug");
 
   async function loadPost() {
-    const container = document.getElementById("postContainer");
+    var container = document.getElementById("postContainer");
     if (!slug) {
-      container.innerHTML = '<div class="error"><p>No post specified.</p><p><a href="/">Go home</a></p></div>';
+      container.className = "error";
+      container.innerHTML = '<p>' + tt("no_post") + '</p><p><a href="/">' + tt("go_home") + '</a></p>';
       return;
     }
 
     try {
-      const res = await fetch(`/api/posts/${slug}`);
+      var res = await fetch("/api/posts/" + slug);
       if (!res.ok) {
-        container.innerHTML = '<div class="error"><p>Post not found.</p><p><a href="/">Go home</a></p></div>';
+        container.className = "error";
+        container.innerHTML = '<p>' + tt("post_not_found") + '</p><p><a href="/">' + tt("go_home") + '</a></p>';
         return;
       }
-      const post = await res.json();
+      var post = await res.json();
+      var contentType = post.content_type || "html";
 
       document.title = post.title + " — Hankv2016 Blog";
 
-      container.innerHTML = `
-        <article>
-          <div class="post-header">
-            <h1>${esc(post.title)}</h1>
-            <div class="meta">
-              <span>${new Date(post.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"})}</span>
-              <span>${esc(post.category || "")}</span>
-            </div>
-            ${(post.tags && post.tags.length) ? `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${post.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
-          </div>
-          <div class="post-body">${post.content}</div>
-        </article>
-      `;
+      var tagsHtml = "";
+      if (post.tags && post.tags.length) {
+        tagsHtml = '<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">' +
+          post.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
+          '</div>';
+      }
+
+      container.className = "";
+      container.innerHTML =
+        '<article>' +
+        '<div class="post-header">' +
+        '<h1>' + esc(post.title) + '</h1>' +
+        '<div class="meta">' +
+        '<span>' + new Date(post.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"}) + '</span>' +
+        '<span>' + esc(post.category || "") + '</span>' +
+        '</div>' +
+        tagsHtml +
+        '</div>' +
+        '<div class="post-body">' + renderContent(post.content, contentType) + '</div>' +
+        '</article>';
     } catch (e) {
-      container.innerHTML = '<div class="error"><p>Failed to load post.</p><button onclick="loadPost()">Retry</button></div>';
+      container.className = "error";
+      container.innerHTML = '<p>' + tt("post_load_failed") + '</p><button onclick="loadPost()">' + tt("retry") + '</button>';
     }
   }
 

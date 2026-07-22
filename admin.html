@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,14 +23,21 @@
     }
     .container { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
 
-    /* 顶栏 */
     .top-bar {
       display: flex; justify-content: space-between; align-items: center;
       padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+      flex-wrap: wrap; gap: 8px;
     }
     .top-bar h1 { font-size: 1.3rem; }
     .top-bar a { color: var(--text); text-decoration: none; opacity: .7; font-size: .9rem; }
     .top-bar a:hover { opacity: 1; }
+    .top-bar-right { display: flex; align-items: center; gap: 10px; }
+    .lang-select {
+      padding: 2px 6px; font-size: 0.8rem;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      outline: none; opacity: 0.7; border-radius: 4px; cursor: pointer;
+    }
+    .lang-select:focus { opacity: 1; }
 
     /* 登录区 */
     .login-box {
@@ -63,12 +70,12 @@
     }
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: .8rem; opacity: .7; }
-    .field input {
+    .field input, .field select {
       padding: 8px 12px; border: 1px solid var(--border); background: var(--bg);
       color: var(--text); font-size: .95rem; outline: none; border-radius: 4px;
       min-width: 180px;
     }
-    .field input:focus { border-color: var(--accent); }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
     .field.slug input { min-width: 220px; }
     .field.title { flex: 1; min-width: 300px; }
     .field.title input { width: 100%; }
@@ -107,25 +114,29 @@
 
     @media (max-width: 600px) {
       .field { width: 100%; }
-      .field input { min-width: 0 !important; width: 100%; }
+      .field input, .field select { min-width: 0 !important; width: 100%; }
     }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="top-bar">
-    <h1>Blog Admin</h1>
-    <div>
-      <a href="/" target="_blank">View Site</a> &nbsp;
-      <button class="btn btn-sm btn-outline" onclick="toggleTheme()" style="margin-left:8px">&#9788;/&#9790;</button>
+    <h1 data-i18n="blog_admin">Blog Admin</h1>
+    <div class="top-bar-right">
+      <a href="/" target="_blank" data-i18n="view_site">View Site</a>
+      <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
+        <option value="en">EN</option>
+        <option value="zh">中文</option>
+      </select>
+      <button class="btn btn-sm btn-outline" onclick="toggleTheme()">&#9788;/&#9790;</button>
     </div>
   </div>
 
   <!-- ===== 登录 ===== -->
   <div id="loginBox" class="login-box">
-    <h2>Admin Login</h2>
-    <input type="password" id="passwordInput" placeholder="Admin Password" />
-    <button onclick="login()">Login</button>
+    <h2 data-i18n="admin_login">Admin Login</h2>
+    <input type="password" id="passwordInput" data-i18n-ph="admin_password" />
+    <button onclick="login()" data-i18n="login_btn">Login</button>
     <p class="msg" id="loginMsg"></p>
   </div>
 
@@ -133,35 +144,42 @@
   <div id="editor" class="editor">
     <div class="editor-header">
       <div class="field title">
-        <label>Title</label>
-        <input type="text" id="titleInput" placeholder="Article title" />
+        <label data-i18n="title_label">Title</label>
+        <input type="text" id="titleInput" data-i18n-ph="title_ph" />
       </div>
       <div class="field slug">
-        <label>Slug</label>
-        <input type="text" id="slugInput" placeholder="url-friendly-name" />
+        <label data-i18n="slug_label">Slug</label>
+        <input type="text" id="slugInput" data-i18n-ph="slug_ph" />
       </div>
       <div class="field">
-        <label>Category</label>
-        <input type="text" id="catInput" placeholder="Tech" />
+        <label data-i18n="category_label">Category</label>
+        <input type="text" id="catInput" data-i18n-ph="category_ph" />
       </div>
       <div class="field">
-        <label>Tags (comma)</label>
-        <input type="text" id="tagsInput" placeholder="js, css" />
+        <label data-i18n="tags_label">Tags (comma)</label>
+        <input type="text" id="tagsInput" data-i18n-ph="tags_ph" />
+      </div>
+      <div class="field" style="min-width:130px">
+        <label data-i18n="content_type_label">Content Type</label>
+        <select id="contentTypeSelect" onchange="onContentTypeChange()">
+          <option value="html" data-i18n="content_html">HTML</option>
+          <option value="markdown" data-i18n="content_markdown">Markdown</option>
+        </select>
       </div>
     </div>
 
-    <textarea id="contentInput" placeholder="Write your article in HTML...&#10;&#10;<p>Hello world</p>"></textarea>
+    <textarea id="contentInput" data-i18n-ph="content_ph_html"></textarea>
 
     <div class="editor-actions">
-      <button class="btn" id="saveBtn" onclick="savePost()">Publish</button>
-      <button class="btn btn-outline" onclick="previewPost()">Preview</button>
-      <button class="btn btn-outline" onclick="newPost()">New Draft</button>
+      <button class="btn" id="saveBtn" onclick="savePost()" data-i18n="publish">Publish</button>
+      <button class="btn btn-outline" onclick="previewPost()" data-i18n="preview">Preview</button>
+      <button class="btn btn-outline" onclick="newPost()" data-i18n="new_draft">New Draft</button>
       <span class="msg" id="editMsg"></span>
     </div>
 
     <!-- 文章列表 -->
     <div class="post-list">
-      <h3>All Posts</h3>
+      <h3 data-i18n="all_posts">All Posts</h3>
       <div id="postList"></div>
     </div>
   </div>
@@ -172,33 +190,56 @@
   <div class="modal" id="modalContent"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/i18n.js"></script>
 <script>
-  let token = localStorage.getItem("admin_token") || "";
-  let editingSlug = null;
+  // 配置 marked
+  if (typeof marked !== 'undefined') {
+    marked.setOptions({ breaks: true, gfm: true });
+  }
 
-  // 页面启动
+  var token = localStorage.getItem("admin_token") || "";
+  var editingSlug = null;
+  var currentContentType = "html";
+
   if (token) { showEditor(); loadPosts(); }
-  // 光有 token 不一定有效，但先展示
 
   function toggleTheme() {
-    const r = document.documentElement;
+    var r = document.documentElement;
     r.setAttribute("data-theme", r.getAttribute("data-theme") === "dark" ? "light" : "dark");
   }
 
-  // ==================== 登录 ====================
+  function onContentTypeChange() {
+    var sel = document.getElementById("contentTypeSelect");
+    currentContentType = sel.value;
+    var ta = document.getElementById("contentInput");
+    if (currentContentType === "markdown") {
+      ta.setAttribute("data-i18n-ph", "content_ph_md");
+    } else {
+      ta.setAttribute("data-i18n-ph", "content_ph_html");
+    }
+    applyAllTranslations();
+  }
+
+  function renderContent(content, contentType) {
+    if (contentType === "markdown" && typeof marked !== 'undefined') {
+      return marked.parse(content);
+    }
+    return content;
+  }
+
+  // ===== 登录 =====
   async function login() {
-    const pw = document.getElementById("passwordInput").value;
+    var pw = document.getElementById("passwordInput").value;
     token = pw;
     try {
-      const res = await fetch("/api/posts", {
-        headers: { "Authorization": "Bearer " + pw }
-      });
-      if (res.status === 401) throw new Error("Wrong password");
+      var res = await fetch("/api/posts", { headers: { "Authorization": "Bearer " + pw } });
+      if (res.status === 401) throw new Error(tt("wrong_password"));
       localStorage.setItem("admin_token", pw);
       showEditor();
       loadPosts();
     } catch (e) {
-      document.getElementById("loginMsg").textContent = "Login failed: " + e.message;
+      document.getElementById("loginMsg").textContent = tt("login_failed_prefix") + e.message;
       token = "";
     }
   }
@@ -218,7 +259,7 @@
     return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
   }
 
-  // ==================== 编辑器 ====================
+  // ===== 编辑器 =====
   function newPost() {
     editingSlug = null;
     document.getElementById("titleInput").value = "";
@@ -226,121 +267,121 @@
     document.getElementById("catInput").value = "";
     document.getElementById("tagsInput").value = "";
     document.getElementById("contentInput").value = "";
-    document.getElementById("saveBtn").textContent = "Publish";
+    document.getElementById("contentTypeSelect").value = "html";
+    currentContentType = "html";
+    onContentTypeChange();
+    document.getElementById("saveBtn").textContent = tt("publish");
     document.getElementById("editMsg").textContent = "";
     document.getElementById("titleInput").focus();
   }
 
   async function savePost() {
-    const title = document.getElementById("titleInput").value.trim();
-    const content = document.getElementById("contentInput").value.trim();
-    let slug = document.getElementById("slugInput").value.trim();
-    const category = document.getElementById("catInput").value.trim();
-    const tags = document.getElementById("tagsInput").value.split(",").map(t => t.trim()).filter(Boolean);
+    var title = document.getElementById("titleInput").value.trim();
+    var content = document.getElementById("contentInput").value.trim();
+    var slug = document.getElementById("slugInput").value.trim();
+    var category = document.getElementById("catInput").value.trim();
+    var tags = document.getElementById("tagsInput").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
+    var contentType = document.getElementById("contentTypeSelect").value;
 
-    if (!title) return msg("Please enter a title", true);
-    if (!content) return msg("Please write some content", true);
+    if (!title) return msg(tt("need_title"), true);
+    if (!content) return msg(tt("need_content"), true);
     if (!slug) {
       slug = title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-").replace(/^-|-$/g, "");
       document.getElementById("slugInput").value = slug;
     }
 
-    const body = { title, content, slug, category, tags };
-    const method = editingSlug ? "PUT" : "POST";
-    const url = editingSlug ? `/api/posts/${editingSlug}` : "/api/posts";
+    var body = { title: title, content: content, slug: slug, category: category, tags: tags, content_type: contentType };
+    var method = editingSlug ? "PUT" : "POST";
+    var url = editingSlug ? "/api/posts/" + editingSlug : "/api/posts";
 
     try {
-      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+      var res = await fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(body) });
       if (res.status === 401) return logout();
       if (!res.ok) {
-        const e = await res.json();
-        return msg("Error: " + (e.error || "Unknown"), true);
+        var e = await res.json();
+        return msg(tt("error_prefix") + (e.error || tt("unknown")), true);
       }
-      msg("Saved!");
+      msg(tt("saved"));
       editingSlug = slug;
-      document.getElementById("saveBtn").textContent = "Update";
+      document.getElementById("saveBtn").textContent = tt("update_btn");
       loadPosts();
     } catch (e) {
-      msg("Network error: " + e.message, true);
+      msg(tt("network_error") + ": " + e.message, true);
     }
   }
 
   function msg(text, isErr) {
-    const el = document.getElementById("editMsg");
+    var el = document.getElementById("editMsg");
     el.textContent = text;
     el.style.color = isErr ? "var(--danger)" : "";
-    setTimeout(() => { el.textContent = ""; }, 3000);
+    setTimeout(function() { el.textContent = ""; }, 3000);
   }
 
-  // ==================== 文章列表 ====================
+  // ===== 文章列表 =====
   async function loadPosts() {
-    const container = document.getElementById("postList");
+    var container = document.getElementById("postList");
     try {
-      const res = await fetch("/api/posts");
+      var res = await fetch("/api/posts");
       if (!res.ok) throw new Error("Load failed");
-      const posts = await res.json();
+      var posts = await res.json();
       if (!posts.length) {
-        container.innerHTML = "<p style='opacity:.5'>No posts yet — write your first!</p>";
+        container.innerHTML = "<p style='opacity:.5'>" + tt("no_posts_yet") + "</p>";
         return;
       }
-      container.innerHTML = posts.map(p => `
-        <div class="post-item">
-          <div class="info">
-            <div class="title">${esc(p.title)}</div>
-            <div class="meta">${esc(p.slug)} &middot; ${new Date(p.created_at).toLocaleDateString()} &middot; ${esc(p.category)}</div>
-          </div>
-          <div class="actions">
-            <button class="btn btn-sm btn-outline" onclick="editPost('${esc(p.slug)}')">Edit</button>
-            <button class="btn btn-sm btn-danger" onclick="deletePost('${esc(p.slug)}')">Delete</button>
-          </div>
-        </div>
-      `).join("");
+      container.innerHTML = posts.map(function(p) {
+        return '<div class="post-item"><div class="info"><div class="title">' + esc(p.title) + '</div><div class="meta">' + esc(p.slug) + ' &middot; ' + new Date(p.created_at).toLocaleDateString() + ' &middot; ' + esc(p.category || '') + '</div></div><div class="actions"><button class="btn btn-sm btn-outline" onclick="editPost(\'' + esc(p.slug) + '\')">' + tt("edit") + '</button> <button class="btn btn-sm btn-danger" onclick="deletePost(\'' + esc(p.slug) + '\')">' + tt("delete") + '</button></div></div>';
+      }).join("");
     } catch (e) {
-      container.innerHTML = "<p style='opacity:.5'>Failed to load posts.</p>";
+      container.innerHTML = "<p style='opacity:.5'>" + tt("load_posts_failed") + "</p>";
     }
   }
 
   async function editPost(slug) {
     try {
-      const res = await fetch(`/api/posts/${slug}`);
-      if (!res.ok) return msg("Post not found", true);
-      const p = await res.json();
+      var res = await fetch("/api/posts/" + slug);
+      if (!res.ok) return msg(tt("post_not_found_err"), true);
+      var p = await res.json();
       editingSlug = slug;
       document.getElementById("titleInput").value = p.title;
       document.getElementById("slugInput").value = p.slug;
       document.getElementById("catInput").value = p.category || "";
       document.getElementById("tagsInput").value = (p.tags || []).join(", ");
       document.getElementById("contentInput").value = p.content;
-      document.getElementById("saveBtn").textContent = "Update";
+      currentContentType = p.content_type || "html";
+      document.getElementById("contentTypeSelect").value = currentContentType;
+      onContentTypeChange();
+      document.getElementById("saveBtn").textContent = tt("update_btn");
       document.getElementById("editMsg").textContent = "";
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
-      msg("Error loading post", true);
+      msg(tt("load_error"), true);
     }
   }
 
   async function deletePost(slug) {
-    if (!confirm("Delete '" + slug + "'? This cannot be undone.")) return;
+    var msg = tt("delete_confirm", { slug: slug });
+    if (!confirm(msg)) return;
     try {
-      const res = await fetch(`/api/posts/${slug}`, { method: "DELETE", headers: authHeaders() });
+      var res = await fetch("/api/posts/" + slug, { method: "DELETE", headers: authHeaders() });
       if (res.status === 401) return logout();
       if (!res.ok) throw new Error("Delete failed");
       loadPosts();
       if (editingSlug === slug) newPost();
     } catch (e) {
-      msg("Delete error: " + e.message, true);
+      msg(tt("delete_error") + ": " + e.message, true);
     }
   }
 
-  // ==================== 预览 ====================
+  // ===== 预览 =====
   function previewPost() {
-    const title = document.getElementById("titleInput").value || "(Untitled)";
-    const content = document.getElementById("contentInput").value || "<p>No content</p>";
-    document.getElementById("modalContent").innerHTML = `
-      <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('active')">&times;</button>
-      <h1>${esc(title)}</h1>
-      <div style="margin-top:24px">${content}</div>
-    `;
+    var title = document.getElementById("titleInput").value || tt("untitled");
+    var content = document.getElementById("contentInput").value || "<p>" + tt("no_content") + "</p>";
+    var contentType = document.getElementById("contentTypeSelect").value;
+    var rendered = renderContent(content, contentType);
+    document.getElementById("modalContent").innerHTML =
+      '<button class="modal-close" onclick="document.getElementById(\'modalOverlay\').classList.remove(\'active\')">&times;</button>' +
+      '<h1>' + esc(title) + '</h1>' +
+      '<div style="margin-top:24px">' + rendered + '</div>';
     document.getElementById("modalOverlay").classList.add("active");
   }
 
@@ -354,13 +395,27 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  // 键盘快捷键 Ctrl+S 保存
-  document.addEventListener("keydown", e => {
+  // Ctrl+S 保存
+  document.addEventListener("keydown", function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
       if (document.getElementById("editor").classList.contains("active")) savePost();
     }
   });
+
+  // 语言切换后更新保存按钮文字
+  var origSetLang = setLang;
+  setLang = function(lang) {
+    origSetLang(lang);
+    // 更新保存按钮文字
+    var btn = document.getElementById("saveBtn");
+    if (btn && editingSlug) btn.textContent = tt("update_btn");
+    else if (btn) btn.textContent = tt("publish");
+    // 更新文章列表按钮
+    loadPosts();
+    // 更新 textarea placeholder
+    onContentTypeChange();
+  };
 </script>
 </body>
 </html>

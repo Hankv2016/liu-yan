@@ -47,7 +47,7 @@ export async function onRequest(context) {
 
     try {
       const body = await request.json();
-      const { title, content, excerpt, category, tags, slug } = body;
+      const { title, content, excerpt, category, tags, slug, content_type } = body;
 
       if (!title || !content || !slug) {
         return new Response(JSON.stringify({ error: "title, content, slug are required" }), {
@@ -57,11 +57,31 @@ export async function onRequest(context) {
       }
 
       const now = new Date().toISOString();
+      const ct = content_type || "html";
+
+      // 生成摘要：Markdown 格式需要先剥离语法
+      let autoExcerpt = "";
+      if (ct === "markdown") {
+        autoExcerpt = content
+          .replace(/#{1,6}\s+/g, "")
+          .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+          .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+          .replace(/`{1,3}[^`]*`{1,3}/g, "")
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+          .replace(/!\[.*?\]\(.*?\)/g, "")
+          .replace(/[>\-*+]\s+/g, "")
+          .replace(/\n+/g, " ")
+          .substring(0, 150).trim() + "...";
+      } else {
+        autoExcerpt = content.replace(/<[^>]*>/g, "").substring(0, 150) + "...";
+      }
+
       const post = {
         slug,
         title,
         content,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, "").substring(0, 150) + "...",
+        content_type: ct,
+        excerpt: excerpt || autoExcerpt,
         category: category || "Uncategorized",
         tags: tags || [],
         created_at: now,

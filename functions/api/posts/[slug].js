@@ -50,7 +50,7 @@ export async function onRequest(context) {
   if (request.method === "PUT") {
     try {
       const body = await request.json();
-      const { title, content, excerpt, category, tags } = body;
+      const { title, content, excerpt, category, tags, content_type } = body;
 
       if (!title || !content) {
         return new Response(JSON.stringify({ error: "title and content are required" }), {
@@ -62,12 +62,32 @@ export async function onRequest(context) {
       const existingRaw = await env.BLOG_KV.get(`posts:${slug}`);
       const existing = existingRaw ? JSON.parse(existingRaw) : {};
 
+      const ct = content_type || existing.content_type || "html";
+
+      // 生成摘要
+      let autoExcerpt = "";
+      if (ct === "markdown") {
+        autoExcerpt = content
+          .replace(/#{1,6}\s+/g, "")
+          .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+          .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+          .replace(/`{1,3}[^`]*`{1,3}/g, "")
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+          .replace(/!\[.*?\]\(.*?\)/g, "")
+          .replace(/[>\-*+]\s+/g, "")
+          .replace(/\n+/g, " ")
+          .substring(0, 150).trim() + "...";
+      } else {
+        autoExcerpt = content.replace(/<[^>]*>/g, "").substring(0, 150) + "...";
+      }
+
       const post = {
         ...existing,
         slug,
         title,
         content,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, "").substring(0, 150) + "...",
+        content_type: ct,
+        excerpt: excerpt || autoExcerpt,
         category: category || existing.category || "Uncategorized",
         tags: tags || existing.tags || [],
         updated_at: new Date().toISOString(),

@@ -5,286 +5,208 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hankv2016 Blog</title>
     <style>
-        /* 浅色主题（默认） */
-        :root,
-        [data-theme="light"] {
-            --bg: #ffffff;
-            --text: #000000;
-        }
-
-        /* 深色主题 */
-        [data-theme="dark"] {
-            --bg: #000000;
-            --text: #e0e0e0;
-        }
+        :root, [data-theme="light"] { --bg: #ffffff; --text: #000000; }
+        [data-theme="dark"] { --bg: #000000; --text: #e0e0e0; }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg); color: var(--text);
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* 主内容区 + 侧边栏布局 */
         .main-wrapper {
-            display: flex;
-            min-height: calc(100vh - 200px);
+            display: flex; min-height: calc(100vh - 200px);
         }
 
         .sidebar {
-            position: sticky;
-            top: 40px;
-            width: 260px;
-            flex-shrink: 0;
-            background: rgba(0, 0, 0, 0);
-            padding: 40px 20px 40px max(20px, calc((100vw - 1100px) / 2 + 20px));
+            position: sticky; top: 40px; width: 260px; flex-shrink: 0;
+            background: rgba(0,0,0,0);
+            padding: 40px 20px 40px max(20px, calc((100vw - 1100px)/2 + 20px));
         }
+        .sidebar h1 { margin: 0; font-size: 1.6rem; }
+        .sidebar p { color: var(--text); opacity: 0.6; margin: 8px 0 20px; }
+        .sidebar nav a { display: block; margin-bottom: 10px; }
 
-        .sidebar h1 {
-            margin: 0;
-            font-size: 1.6rem;
-        }
-
-        .sidebar p {
-            color: var(--text);
-            opacity: 0.6;
-            margin: 8px 0 20px;
-        }
-
-        .sidebar nav a {
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        /* 侧边栏搜索框 */
         .sidebar-search input {
-            width: 100px;
-            padding: 3px 6px;
-            margin-bottom: 12px;
-            font-size: 0.85rem;
-            border: 1px solid var(--text);
-            background: var(--bg);
-            color: var(--text);
-            outline: none;
-            opacity: 0.7;
+            width: 100px; padding: 3px 6px; margin-bottom: 12px; font-size: 0.85rem;
+            border: 1px solid var(--text); background: var(--bg); color: var(--text);
+            outline: none; opacity: 0.7;
         }
+        .sidebar-search input:focus { opacity: 1; border-color: var(--text); }
 
-        .sidebar-search input:focus {
-            opacity: 1;
-            border-color: var(--text);
-        }
+        .sidebar section { margin-bottom: 30px; }
+        .sidebar h3 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--text); opacity: 0.7; }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar li { margin-bottom: 8px; }
+        .sidebar a { color: var(--text); opacity: 0.75; text-decoration: none; transition: opacity 0.2s; }
+        .sidebar a:hover { opacity: 1; }
 
-        .sidebar section {
-            margin-bottom: 30px;
-        }
-
-        .sidebar h3 {
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--text);
-            opacity: 0.7;
-        }
-
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .sidebar li {
-            margin-bottom: 8px;
-        }
-
-        .sidebar a {
-            color: var(--text);
-            opacity: 0.75;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-
-        .sidebar a:hover {
-            opacity: 1;
-        }
-
-        .tag-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
         .tag {
-            padding: 4px 10px;
-            border: 1px solid var(--text);
-            border-radius: 14px;
-            font-size: 0.85rem;
-            opacity: 0.65;
-            cursor: pointer;
-            transition: opacity 0.2s;
+            padding: 4px 10px; border: 1px solid var(--text); border-radius: 14px;
+            font-size: 0.85rem; opacity: 0.65; cursor: pointer; transition: opacity 0.2s;
         }
-
-        .tag:hover {
-            opacity: 1;
-        }
+        .tag:hover { opacity: 1; }
 
         .main-content {
-            flex: 1;
-            min-width: 0;
-            padding: 40px 20px;
-            max-width: 840px;
+            flex: 1; min-width: 0; padding: 40px 20px; max-width: 840px;
+        }
+
+        /* top-right controls (theme + lang) */
+        .top-controls {
+            display: flex; gap: 8px; align-items: center; margin-bottom: 16px;
+        }
+        .lang-select {
+            padding: 2px 6px; font-size: 0.8rem;
+            border: 1px solid var(--text); background: var(--bg); color: var(--text);
+            outline: none; opacity: 0.7; border-radius: 4px; cursor: pointer;
+        }
+        .lang-select:focus { opacity: 1; }
+        .theme-toggle {
+            background: none; border: none; color: var(--text); cursor: pointer; font-size: 1.1rem;
         }
 
         @media (max-width: 768px) {
-            .main-wrapper {
-                flex-direction: column;
-                min-height: auto;
-            }
-            .sidebar {
-                width: 100%;
-                padding: 30px 20px;
-            }
-            .main-content {
-                max-width: none;
-            }
+            .main-wrapper { flex-direction: column; min-height: auto; }
+            .sidebar { width: 100%; padding: 30px 20px; }
+            .main-content { max-width: none; }
         }
     </style>
 </head>
 <body>
-
     <div class="main-wrapper">
-            <aside class="sidebar">
-                <!-- Logo & Theme -->
-                <div class="logo">
-                    <img src="/images/favicon.ico" alt="logo" />
-                    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">🌓</button>
+        <aside class="sidebar">
+            <!-- Logo & controls -->
+            <div class="top-controls">
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">&#127763;</button>
+                <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
+                    <option value="en">EN</option>
+                    <option value="zh">中文</option>
+                </select>
+            </div>
+
+            <!-- Search -->
+            <section class="sidebar-search">
+                <input type="text" id="searchInput" data-i18n-ph="search" />
+            </section>
+
+            <!-- Navigation -->
+            <section>
+                <h3 data-i18n="navigation">Navigation</h3>
+                <nav class="nav">
+                    <ul>
+                        <li><a href="/" data-i18n="home">Home</a></li>
+                        <li><a href="/posts" data-i18n="posts">Posts</a></li>
+                        <li><a href="/about" data-i18n="about">About</a></li>
+                    </ul>
+                </nav>
+            </section>
+
+            <section>
+                <h3 data-i18n="categories">Categories</h3>
+                <ul>
+                    <li><a href="/category/tech">Tech</a></li>
+                    <li><a href="/category/life">Life</a></li>
+                    <li><a href="/category/notes">Notes</a></li>
+                    <li><a href="/category/projects">Projects</a></li>
+                </ul>
+            </section>
+
+            <section>
+                <h3 data-i18n="tags">Tags</h3>
+                <div class="tag-cloud">
+                    <span class="tag">JavaScript</span>
+                    <span class="tag">Python</span>
+                    <span class="tag">CSS</span>
+                    <span class="tag">Linux</span>
+                    <span class="tag">Git</span>
+                    <span class="tag">React</span>
                 </div>
+            </section>
 
-                <!-- Search -->
-                <section class="sidebar-search">
-                    <input type="text" id="searchInput" placeholder="Search..." />
-                </section>
+            <section>
+                <h3 data-i18n="links">Links</h3>
+                <ul>
+                    <li><a href="https://github.com" target="_blank">GitHub</a></li>
+                    <li><a href="https://stackoverflow.com" target="_blank">Stack Overflow</a></li>
+                </ul>
+            </section>
 
-                <!-- Navigation -->
-                <section>
-                    <h3>Navigation</h3>
-                    <nav class="nav">
-                        <ul>
-                            <li><a href="/">Home</a></li>
-                            <li><a href="/posts">Posts</a></li>
-                            <li><a href="/about">About</a></li>
-                        </ul>
-                    </nav>
-                </section>
-
-                <section>
-                    <h3>Categories</h3>
+            <section>
+                <h3 data-i18n="social">Social</h3>
+                <div class="social">
                     <ul>
-                        <li><a href="/category/tech">Tech</a></li>
-                        <li><a href="/category/life">Life</a></li>
-                        <li><a href="/category/notes">Notes</a></li>
-                        <li><a href="/category/projects">Projects</a></li>
+                        <li><a href="https://space.bilibili.com/1900612720" target="_blank"><img src="/images/bilibili.ico" alt="bilibili" /></a></li>
+                        <li><a href="#" aria-disabled="true" title="Twitter (coming soon)"><img src="/images/twitter.png" alt="twitter" /></a></li>
+                        <li><a href="#" aria-disabled="true" title="Instagram (coming soon)"><img src="/images/instagram.png" alt="instagram" /></a></li>
+                        <li><a href="#" aria-disabled="true" title="LinkedIn (coming soon)"><img src="/images/linkedin.png" alt="linkedin" /></a></li>
                     </ul>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <!-- Banner -->
+            <section class="banner">
+                <div class="banner-text">
+                    <h1 data-i18n="welcome">Welcome to Hankv2016 Blog</h1>
+                    <p data-i18n="welcome_sub">Write code, write life.</p>
+                </div>
+            </section>
+
+            <section class="content">
+                <div class="content-left">
+                    <h2 data-i18n="about_me">About Me</h2>
+                    <p data-i18n="about_me_text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.</p>
+                </div>
+                <div class="content-right">
+                    <img src="/images/about.png" alt="about" />
+                </div>
+                <section class="posts">
+                    <h2 data-i18n="latest_posts">Latest Posts</h2>
+                    <div id="postList"></div>
                 </section>
+            </section>
+        </main>
+    </div>
 
-                <section>
-                    <h3>Tags</h3>
-                    <div class="tag-cloud">
-                        <span class="tag">JavaScript</span>
-                        <span class="tag">Python</span>
-                        <span class="tag">CSS</span>
-                        <span class="tag">Linux</span>
-                        <span class="tag">Git</span>
-                        <span class="tag">React</span>
-                    </div>
-                </section>
-
-                <section>
-                    <h3>Links</h3>
-                    <ul>
-                        <li><a href="https://github.com" target="_blank">GitHub</a></li>
-                        <li><a href="https://stackoverflow.com" target="_blank">Stack Overflow</a></li>
-                    </ul>
-                </section>
-
-                <!-- Social -->
-                <section>
-                    <h3>Social</h3>
-                    <div class="social">
-                        <ul>
-                            <li><a href="https://space.bilibili.com/1900612720" target="_blank"><img src="/images/bilibili.ico" alt="bilibili" /></a></li>
-                            <li><a href="#" aria-disabled="true" title="Twitter (coming soon)"><img src="/images/twitter.png" alt="twitter" /></a></li>
-                            <li><a href="#" aria-disabled="true" title="Instagram (coming soon)"><img src="/images/instagram.png" alt="instagram" /></a></li>
-                            <li><a href="#" aria-disabled="true" title="LinkedIn (coming soon)"><img src="/images/linkedin.png" alt="linkedin" /></a></li>
-                        </ul>
-                    </div>
-                </section>
-            </aside>
-
-            <main class="main-content">
-
-                <!-- Banner -->
-                <section class="banner">
-                    <div class="banner-text">
-                        <h1>Welcome to Hankv2016 Blog</h1>
-                        <p>Write code, write life.</p>
-                    </div>
-                </section>
-
-                <section class="content">
-                    <div class="content-left">
-                        <h2>About Me</h2>
-                        <p>
-                            Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                            Quisquam, quod.
-                        </p>
-                    </div>
-                    <div class="content-right">
-                        <img src="/images/about.png" alt="about" />
-                    </div>
-                    <section class="posts">
-                        <h2>Latest Posts</h2>
-                        <div id="postList"></div>
-                    </section>
-                </section>
-            </main>
-        </div>
-
+<script src="/i18n.js"></script>
 <script>
     function toggleTheme() {
-        const root = document.documentElement;
-        const theme = root.getAttribute('data-theme');
-        root.setAttribute('data-theme', theme === 'dark' ? 'light' : 'dark');
+        var root = document.documentElement;
+        root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
 
-    document.addEventListener("DOMContentLoaded", async () => {
-        const container = document.getElementById("postList");
+    document.addEventListener("DOMContentLoaded", function() {
+        var container = document.getElementById("postList");
 
-        // 检测是否通过 file:// 协议打开，如果是则跳过 fetch
         if (window.location.protocol === "file:") {
-            container.innerHTML = "<p>Please start a local server to load posts (e.g. <code>npx serve .</code>).</p>";
+            container.innerHTML = "<p>" + tt("local_server") + "</p>";
             return;
         }
 
-        try {
-            const res = await fetch("/api/posts");
-            if (!res.ok) throw new Error("API error");
-
-            const posts = await res.json();
-
-            if (!posts.length) {
-                container.innerHTML = "<p>No posts yet.</p>";
-                return;
-            }
-
-            container.innerHTML = posts.map(p => `
-                <article class="post-card">
-                    <h3><a href="/post.html?slug=${encodeURIComponent(p.slug)}">${p.title}</a></h3>
-                    <time>${new Date(p.created_at).toLocaleDateString()}</time>
-                    <p>${p.excerpt}</p>
-                </article>
-            `).join("");
-        } catch (err) {
-            console.error(err);
-            container.innerHTML = "<p>Failed to load posts.</p>";
-        }
+        fetch("/api/posts")
+            .then(function(res) {
+                if (!res.ok) throw new Error("API error");
+                return res.json();
+            })
+            .then(function(posts) {
+                if (!posts.length) {
+                    container.innerHTML = "<p>" + tt("no_posts") + "</p>";
+                    return;
+                }
+                container.innerHTML = posts.map(function(p) {
+                    return '<article class="post-card"><h3><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></h3><time>' + new Date(p.created_at).toLocaleDateString() + '</time><p>' + esc(p.excerpt || '') + '</p></article>';
+                }).join("");
+            })
+            .catch(function(err) {
+                console.error(err);
+                container.innerHTML = "<p>" + tt("load_failed") + "</p>";
+            });
     });
+
+    function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
 </script>
 </body>
 </html>
