@@ -1,0 +1,16 @@
+name = "hankv2016-blog"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Pages 项目配置
+# 部署命令: npx wrangler pages deploy . --branch main
+# 本地开发: npx wrangler pages dev .
+
+# KV 绑定 — 请在 Cloudflare Dashboard 创建 KV namespace
+# 然后将 id 填入下方
+# [[kv_namespaces]]
+# binding = "BLOG_KV"
+# id = "your-production-kv-id"
+
+[vars]
+ADMIN_PASSWORD = "change-me-please"
+SITE_TITLE = "Hankv2016 Blog"

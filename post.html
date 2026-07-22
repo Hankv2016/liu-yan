@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post — Hankv2016 Blog</title>
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #ffffff; --text: #1a1a1a; --muted: #777; --border: #e0e0e0;
+    }
+    [data-theme="dark"] {
+      --bg: #111111; --text: #e0e0e0; --muted: #999; --border: #333;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 16px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: background .3s, color .3s;
+    }
+    .container { max-width: 780px; margin: 0 auto; padding: 32px 20px; }
+
+    /* 顶栏 */
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 40px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    nav a { color: var(--text); text-decoration: none; opacity: .7; font-size: .9rem; }
+    nav a:hover { opacity: 1; }
+    nav .home { font-weight: 600; font-size: 1rem; opacity: 1; }
+
+    /* 文章头部 */
+    .post-header { margin-bottom: 36px; }
+    .post-header h1 { font-size: 2rem; line-height: 1.3; margin-bottom: 12px; }
+    .post-header .meta { color: var(--muted); font-size: .9rem; display: flex; gap: 16px; flex-wrap: wrap; }
+    .post-header .tag { padding: 2px 10px; border: 1px solid var(--text); border-radius: 14px; font-size: .8rem; opacity: .6; }
+
+    /* 文章正文 */
+    .post-body { word-break: break-word; }
+    .post-body h2 { margin: 36px 0 16px; font-size: 1.4rem; }
+    .post-body h3 { margin: 28px 0 12px; font-size: 1.15rem; }
+    .post-body p { margin-bottom: 16px; }
+    .post-body img { max-width: 100%; border-radius: 6px; margin: 12px 0; }
+    .post-body pre {
+      background: rgba(128,128,128,.1); padding: 16px; border-radius: 6px;
+      overflow-x: auto; font-size: .9rem; line-height: 1.6; margin: 16px 0;
+    }
+    .post-body code { font-size: .9em; background: rgba(128,128,128,.1); padding: 2px 6px; border-radius: 3px; }
+    .post-body pre code { background: none; padding: 0; border-radius: 0; }
+    .post-body blockquote {
+      border-left: 3px solid var(--border); padding-left: 16px; color: var(--muted); margin: 16px 0;
+    }
+    .post-body a { color: #1a73e8; }
+    .post-body ul, .post-body ol { margin: 12px 0; padding-left: 24px; }
+    .post-body li { margin-bottom: 4px; }
+
+    /* 加载 / 错误 */
+    .loading, .error { text-align: center; padding: 80px 0; color: var(--muted); }
+    .error button { margin-top: 16px; }
+
+    .back-link { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .back-link a { color: var(--text); opacity: .6; text-decoration: none; }
+    .back-link a:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <nav>
+    <a href="/" class="home">Hankv2016 Blog</a>
+    <div>
+      <button onclick="toggleTheme()" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:1.1rem">&#9788;/&#9790;</button>
+    </div>
+  </nav>
+
+  <div id="postContainer" class="loading">Loading...</div>
+
+  <div class="back-link"><a href="/">&larr; Back to Home</a></div>
+</div>
+
+<script>
+  function toggleTheme() {
+    const r = document.documentElement;
+    r.setAttribute("data-theme", r.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  }
+
+  // 从 URL 获取 slug: /post.html?slug=xxx
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("slug");
+
+  async function loadPost() {
+    const container = document.getElementById("postContainer");
+    if (!slug) {
+      container.innerHTML = '<div class="error"><p>No post specified.</p><p><a href="/">Go home</a></p></div>';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/posts/${slug}`);
+      if (!res.ok) {
+        container.innerHTML = '<div class="error"><p>Post not found.</p><p><a href="/">Go home</a></p></div>';
+        return;
+      }
+      const post = await res.json();
+
+      document.title = post.title + " — Hankv2016 Blog";
+
+      container.innerHTML = `
+        <article>
+          <div class="post-header">
+            <h1>${esc(post.title)}</h1>
+            <div class="meta">
+              <span>${new Date(post.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"})}</span>
+              <span>${esc(post.category || "")}</span>
+            </div>
+            ${(post.tags && post.tags.length) ? `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${post.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+          </div>
+          <div class="post-body">${post.content}</div>
+        </article>
+      `;
+    } catch (e) {
+      container.innerHTML = '<div class="error"><p>Failed to load post.</p><button onclick="loadPost()">Retry</button></div>';
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  loadPost();
+</script>
+</body>
+</html>

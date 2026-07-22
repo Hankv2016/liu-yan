@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Hankv2016 Blog</title>
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #ffffff; --text: #1a1a1a;
+      --border: #d0d0d0; --accent: #0051c3;
+      --card: #f8f8f8; --danger: #c0392b;
+    }
+    [data-theme="dark"] {
+      --bg: #111111; --text: #e0e0e0;
+      --border: #333; --accent: #5b9bd5;
+      --card: #1a1a1a; --danger: #e74c3c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: background .3s, color .3s;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+
+    /* 顶栏 */
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+    }
+    .top-bar h1 { font-size: 1.3rem; }
+    .top-bar a { color: var(--text); text-decoration: none; opacity: .7; font-size: .9rem; }
+    .top-bar a:hover { opacity: 1; }
+
+    /* 登录区 */
+    .login-box {
+      max-width: 400px; margin: 80px auto; text-align: center;
+      padding: 40px; border: 1px solid var(--border); border-radius: 8px;
+    }
+    .login-box h2 { margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; padding: 10px 14px; margin-bottom: 16px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-size: 1rem; outline: none; border-radius: 4px;
+    }
+    .login-box input:focus { border-color: var(--accent); }
+    .login-box button, .btn {
+      padding: 10px 28px; border: none; background: var(--accent); color: #fff;
+      font-size: 1rem; border-radius: 4px; cursor: pointer; transition: opacity .2s;
+    }
+    .btn:hover, .login-box button:hover { opacity: .85; }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    }
+    .btn-danger { background: var(--danger); }
+    .btn-sm { padding: 4px 12px; font-size: .85rem; }
+
+    /* 编辑区 */
+    .editor { display: none; }
+    .editor.active { display: block; }
+    .editor-header {
+      display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: .8rem; opacity: .7; }
+    .field input {
+      padding: 8px 12px; border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: .95rem; outline: none; border-radius: 4px;
+      min-width: 180px;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field.slug input { min-width: 220px; }
+    .field.title { flex: 1; min-width: 300px; }
+    .field.title input { width: 100%; }
+    textarea#contentInput {
+      width: 100%; min-height: 400px; padding: 14px; font: 15px/1.7 monospace;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      outline: none; border-radius: 4px; resize: vertical; margin-bottom: 12px;
+    }
+    textarea#contentInput:focus { border-color: var(--accent); }
+    .editor-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .msg { font-size: .9rem; opacity: .7; }
+
+    /* 文章列表 */
+    .post-list { margin-top: 40px; }
+    .post-list h3 { margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+    .post-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 16px; background: var(--card); border-radius: 6px; margin-bottom: 8px;
+    }
+    .post-item .info { flex: 1; min-width: 0; }
+    .post-item .title { font-weight: 600; margin-bottom: 2px; }
+    .post-item .meta { font-size: .8rem; opacity: .6; }
+    .post-item .actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* 预览弹出层 */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 100; justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg); max-width: 800px; width: 90%; max-height: 80vh;
+      border-radius: 8px; padding: 32px; overflow-y: auto;
+    }
+    .modal-close { float: right; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+
+    @media (max-width: 600px) {
+      .field { width: 100%; }
+      .field input { min-width: 0 !important; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <h1>Blog Admin</h1>
+    <div>
+      <a href="/" target="_blank">View Site</a> &nbsp;
+      <button class="btn btn-sm btn-outline" onclick="toggleTheme()" style="margin-left:8px">&#9788;/&#9790;</button>
+    </div>
+  </div>
+
+  <!-- ===== 登录 ===== -->
+  <div id="loginBox" class="login-box">
+    <h2>Admin Login</h2>
+    <input type="password" id="passwordInput" placeholder="Admin Password" />
+    <button onclick="login()">Login</button>
+    <p class="msg" id="loginMsg"></p>
+  </div>
+
+  <!-- ===== 编辑器 + 文章列表 ===== -->
+  <div id="editor" class="editor">
+    <div class="editor-header">
+      <div class="field title">
+        <label>Title</label>
+        <input type="text" id="titleInput" placeholder="Article title" />
+      </div>
+      <div class="field slug">
+        <label>Slug</label>
+        <input type="text" id="slugInput" placeholder="url-friendly-name" />
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <input type="text" id="catInput" placeholder="Tech" />
+      </div>
+      <div class="field">
+        <label>Tags (comma)</label>
+        <input type="text" id="tagsInput" placeholder="js, css" />
+      </div>
+    </div>
+
+    <textarea id="contentInput" placeholder="Write your article in HTML...&#10;&#10;<p>Hello world</p>"></textarea>
+
+    <div class="editor-actions">
+      <button class="btn" id="saveBtn" onclick="savePost()">Publish</button>
+      <button class="btn btn-outline" onclick="previewPost()">Preview</button>
+      <button class="btn btn-outline" onclick="newPost()">New Draft</button>
+      <span class="msg" id="editMsg"></span>
+    </div>
+
+    <!-- 文章列表 -->
+    <div class="post-list">
+      <h3>All Posts</h3>
+      <div id="postList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 预览弹窗 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closePreview(event)">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+  let token = localStorage.getItem("admin_token") || "";
+  let editingSlug = null;
+
+  // 页面启动
+  if (token) { showEditor(); loadPosts(); }
+  // 光有 token 不一定有效，但先展示
+
+  function toggleTheme() {
+    const r = document.documentElement;
+    r.setAttribute("data-theme", r.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  }
+
+  // ==================== 登录 ====================
+  async function login() {
+    const pw = document.getElementById("passwordInput").value;
+    token = pw;
+    try {
+      const res = await fetch("/api/posts", {
+        headers: { "Authorization": "Bearer " + pw }
+      });
+      if (res.status === 401) throw new Error("Wrong password");
+      localStorage.setItem("admin_token", pw);
+      showEditor();
+      loadPosts();
+    } catch (e) {
+      document.getElementById("loginMsg").textContent = "Login failed: " + e.message;
+      token = "";
+    }
+  }
+
+  function showEditor() {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("editor").classList.add("active");
+  }
+
+  function logout() {
+    localStorage.removeItem("admin_token");
+    token = "";
+    location.reload();
+  }
+
+  function authHeaders() {
+    return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+  }
+
+  // ==================== 编辑器 ====================
+  function newPost() {
+    editingSlug = null;
+    document.getElementById("titleInput").value = "";
+    document.getElementById("slugInput").value = "";
+    document.getElementById("catInput").value = "";
+    document.getElementById("tagsInput").value = "";
+    document.getElementById("contentInput").value = "";
+    document.getElementById("saveBtn").textContent = "Publish";
+    document.getElementById("editMsg").textContent = "";
+    document.getElementById("titleInput").focus();
+  }
+
+  async function savePost() {
+    const title = document.getElementById("titleInput").value.trim();
+    const content = document.getElementById("contentInput").value.trim();
+    let slug = document.getElementById("slugInput").value.trim();
+    const category = document.getElementById("catInput").value.trim();
+    const tags = document.getElementById("tagsInput").value.split(",").map(t => t.trim()).filter(Boolean);
+
+    if (!title) return msg("Please enter a title", true);
+    if (!content) return msg("Please write some content", true);
+    if (!slug) {
+      slug = title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-").replace(/^-|-$/g, "");
+      document.getElementById("slugInput").value = slug;
+    }
+
+    const body = { title, content, slug, category, tags };
+    const method = editingSlug ? "PUT" : "POST";
+    const url = editingSlug ? `/api/posts/${editingSlug}` : "/api/posts";
+
+    try {
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+      if (res.status === 401) return logout();
+      if (!res.ok) {
+        const e = await res.json();
+        return msg("Error: " + (e.error || "Unknown"), true);
+      }
+      msg("Saved!");
+      editingSlug = slug;
+      document.getElementById("saveBtn").textContent = "Update";
+      loadPosts();
+    } catch (e) {
+      msg("Network error: " + e.message, true);
+    }
+  }
+
+  function msg(text, isErr) {
+    const el = document.getElementById("editMsg");
+    el.textContent = text;
+    el.style.color = isErr ? "var(--danger)" : "";
+    setTimeout(() => { el.textContent = ""; }, 3000);
+  }
+
+  // ==================== 文章列表 ====================
+  async function loadPosts() {
+    const container = document.getElementById("postList");
+    try {
+      const res = await fetch("/api/posts");
+      if (!res.ok) throw new Error("Load failed");
+      const posts = await res.json();
+      if (!posts.length) {
+        container.innerHTML = "<p style='opacity:.5'>No posts yet — write your first!</p>";
+        return;
+      }
+      container.innerHTML = posts.map(p => `
+        <div class="post-item">
+          <div class="info">
+            <div class="title">${esc(p.title)}</div>
+            <div class="meta">${esc(p.slug)} &middot; ${new Date(p.created_at).toLocaleDateString()} &middot; ${esc(p.category)}</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-outline" onclick="editPost('${esc(p.slug)}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deletePost('${esc(p.slug)}')">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    } catch (e) {
+      container.innerHTML = "<p style='opacity:.5'>Failed to load posts.</p>";
+    }
+  }
+
+  async function editPost(slug) {
+    try {
+      const res = await fetch(`/api/posts/${slug}`);
+      if (!res.ok) return msg("Post not found", true);
+      const p = await res.json();
+      editingSlug = slug;
+      document.getElementById("titleInput").value = p.title;
+      document.getElementById("slugInput").value = p.slug;
+      document.getElementById("catInput").value = p.category || "";
+      document.getElementById("tagsInput").value = (p.tags || []).join(", ");
+      document.getElementById("contentInput").value = p.content;
+      document.getElementById("saveBtn").textContent = "Update";
+      document.getElementById("editMsg").textContent = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      msg("Error loading post", true);
+    }
+  }
+
+  async function deletePost(slug) {
+    if (!confirm("Delete '" + slug + "'? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/posts/${slug}`, { method: "DELETE", headers: authHeaders() });
+      if (res.status === 401) return logout();
+      if (!res.ok) throw new Error("Delete failed");
+      loadPosts();
+      if (editingSlug === slug) newPost();
+    } catch (e) {
+      msg("Delete error: " + e.message, true);
+    }
+  }
+
+  // ==================== 预览 ====================
+  function previewPost() {
+    const title = document.getElementById("titleInput").value || "(Untitled)";
+    const content = document.getElementById("contentInput").value || "<p>No content</p>";
+    document.getElementById("modalContent").innerHTML = `
+      <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('active')">&times;</button>
+      <h1>${esc(title)}</h1>
+      <div style="margin-top:24px">${content}</div>
+    `;
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function closePreview(e) {
+    if (e.target === document.getElementById("modalOverlay")) {
+      document.getElementById("modalOverlay").classList.remove("active");
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // 键盘快捷键 Ctrl+S 保存
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      if (document.getElementById("editor").classList.contains("active")) savePost();
+    }
+  });
+</script>
+</body>
+</html>
