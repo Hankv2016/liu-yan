@@ -170,6 +170,7 @@
       <button class="btn" id="saveBtn" onclick="savePost()" data-i18n="publish">Publish</button>
       <button class="btn btn-outline" onclick="previewPost()" data-i18n="preview">Preview</button>
       <button class="btn btn-outline" onclick="newPost()" data-i18n="new_draft">New Draft</button>
+      <button class="btn btn-outline" onclick="saveDraft()" data-i18n="save_draft">Save Draft</button>
       <a class="btn btn-outline" href="posts.html" data-i18n="manage_posts">Posts</a>
       <span class="msg" id="editMsg"></span>
     </div>
@@ -265,9 +266,15 @@
         var e = await res.json();
         return msg(tt("error_prefix") + (e.error || tt("unknown")), true);
       }
-      msg(tt("saved"));
+      localStorage.removeItem("blog_draft_v1");
       editingSlug = slug;
       document.getElementById("saveBtn").textContent = tt("update_btn");
+      // 发布成功（新建 POST）后跳转看文章列表；更新（PUT）则停留提示
+      if (method === "POST") {
+        location.href = "posts.html";
+        return;
+      }
+      msg(tt("saved"));
     } catch (e) {
       msg(tt("network_error") + ": " + e.message, true);
     }
@@ -570,6 +577,44 @@
     } catch (e) { /* 标签联想失败不影响写作 */ }
   }
 
+  // ===== 草稿临时保存（不提交服务器，仅存 localStorage） =====
+  var DRAFT_KEY = "blog_draft_v1";
+  function saveDraft() {
+    var data = {
+      title: document.getElementById("titleInput").value,
+      slug: document.getElementById("slugInput").value,
+      category: document.getElementById("catInput").value,
+      tags: document.getElementById("tagsInput").value.split(",").map(function(t){ return t.trim(); }).filter(Boolean),
+      content: document.getElementById("contentInput").value,
+      content_type: document.getElementById("contentTypeSelect").value
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+      msg(tt("draft_saved"));
+    } catch (e) {
+      msg(tt("draft_save_failed"), true);
+    }
+  }
+
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      if (!confirm(tt("restore_draft"))) return;
+      var d = JSON.parse(raw);
+      document.getElementById("titleInput").value = d.title || "";
+      document.getElementById("slugInput").value = d.slug || "";
+      document.getElementById("catInput").value = d.category || "";
+      document.getElementById("tagsInput").value = (d.tags || []).join(", ");
+      document.getElementById("contentInput").value = d.content || "";
+      currentContentType = d.content_type || "html";
+      document.getElementById("contentTypeSelect").value = currentContentType;
+      onContentTypeChange();
+      editingSlug = d.slug || null;
+      document.getElementById("saveBtn").textContent = editingSlug ? tt("update_btn") : tt("publish");
+    } catch (e) { /* 草稿损坏则忽略 */ }
+  }
+
   // Ctrl+S 保存
   document.addEventListener("keydown", function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -596,6 +641,7 @@
       await editPost(editSlug);
     } else {
       newPost();
+      loadDraft();
     }
     await loadAllTags();
     setupTagAutocomplete();

@@ -94,6 +94,11 @@
       manage_posts_desc: "Edit, publish and delete your posts.",
       write_post_desc: "Create a new article.",
       logout_desc: "Sign out of the admin panel.",
+      save_draft: "Save Draft",
+      draft_saved: "Draft saved",
+      restore_draft: "Restore unsaved draft?",
+      draft_save_failed: "Failed to save draft",
+      manage_comments_desc: "Review and delete reader comments.",
     },
     zh: {
       search: "搜索...",
@@ -189,6 +194,11 @@
       manage_posts_desc: "编辑、发布与删除文章。",
       write_post_desc: "撰写一篇新文章。",
       logout_desc: "退出管理员登录。",
+      save_draft: "保存草稿",
+      draft_saved: "草稿已保存",
+      restore_draft: "检测到未发布的草稿，是否恢复？",
+      draft_save_failed: "草稿保存失败",
+      manage_comments_desc: "查看并删除读者评论。",
     }
   };
 
