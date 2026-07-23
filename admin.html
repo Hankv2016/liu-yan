@@ -576,6 +576,37 @@
     items.forEach(function(it, i) { it.classList.toggle("highlight", i === htmlSugIndex); });
   }
 
+  // 计算 textarea 光标在文本区内的像素坐标（基于 monospace 等宽字体）
+  var _charWidth = null;
+  function getCharWidth(ta) {
+    if (_charWidth !== null) return _charWidth;
+    var ctx = document.createElement("canvas").getContext("2d");
+    var cs = getComputedStyle(ta);
+    ctx.font = cs.fontSize + " " + cs.fontFamily;
+    _charWidth = ctx.measureText("M").width; // monospace 下任意字符等宽
+    return _charWidth;
+  }
+  function getCaretPos(ta) {
+    var cs = getComputedStyle(ta);
+    var fontSize = parseFloat(cs.fontSize) || 15;
+    var lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.7;
+    var padLeft = parseFloat(cs.paddingLeft) || 0;
+    var padTop = parseFloat(cs.paddingTop) || 0;
+    var borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+    var borderTop = parseFloat(cs.borderTopWidth) || 0;
+    var caret = ta.selectionStart;
+    var lines = ta.value.slice(0, caret).split("\n");
+    var row = lines.length - 1;
+    var col = lines[row].length;
+    var cw = getCharWidth(ta);
+    // 相对定位父级（.content-wrap）计算：textarea 偏移 + 边框 + 内边距 + 行/列
+    var top = ta.offsetTop + borderTop + padTop + row * lineHeight + lineHeight + 2; // 光标下一行下方一点点
+    var left = ta.offsetLeft + borderLeft + padLeft + col * cw;
+    top -= ta.scrollTop;   // 减去纵向滚动
+    left -= ta.scrollLeft; // 减去横向滚动
+    return { top: top, left: left };
+  }
+
   function showHtmlTagSuggestions() {
     var ta = document.getElementById("contentInput");
     var box = document.getElementById("htmlTagSuggestions");
@@ -598,6 +629,12 @@
       var label = closing ? "&lt;/" + esc(t) + "&gt;" : "&lt;" + esc(t) + "&gt;";
       return '<div class="sug" data-tag="' + esc(t) + '">' + label + '</div>';
     }).join("");
+    // 让联想下拉跟随文本光标，出现在光标正下方一点点
+    var pos = getCaretPos(ta);
+    box.style.top = pos.top + "px";
+    box.style.left = pos.left + "px";
+    box.style.right = "auto";
+    box.style.maxWidth = Math.max(140, ta.clientWidth - pos.left - 4) + "px";
     box.classList.add("active");
   }
 
