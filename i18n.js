@@ -69,6 +69,16 @@
       untitled: "(Untitled)",
       no_content: "No content",
       lang_switch: "Language",
+      comments_title: "Comments",
+      comment_name_ph: "Your name",
+      comment_content_ph: "Write a comment...",
+      comment_submit: "Submit",
+      no_comments: "No comments yet. Be the first!",
+      load_comments_failed: "Failed to load comments.",
+      need_name: "Please enter your name",
+      need_comment: "Please write a comment",
+      comment_success: "Comment submitted!",
+      comment_failed: "Failed to submit",
     },
     zh: {
       search: "搜索...",
@@ -139,6 +149,16 @@
       untitled: "（无标题）",
       no_content: "无内容",
       lang_switch: "语言",
+      comments_title: "评论",
+      comment_name_ph: "你的昵称",
+      comment_content_ph: "写评论...",
+      comment_submit: "提交",
+      no_comments: "暂无评论，来说两句吧！",
+      load_comments_failed: "加载评论失败。",
+      need_name: "请输入昵称",
+      need_comment: "请输入评论内容",
+      comment_success: "评论已提交！",
+      comment_failed: "提交失败",
     }
   };
 

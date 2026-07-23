@@ -68,6 +68,41 @@
     .back-link { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
     .back-link a { color: var(--text); opacity: .6; text-decoration: none; }
     .back-link a:hover { opacity: 1; }
+
+    /* 评论区 */
+    .comment-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
+    .comment-section h3 { margin-bottom: 20px; font-size: 1.15rem; }
+    .comment-form { margin-bottom: 32px; }
+    .comment-form .row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .comment-form input, .comment-form textarea {
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--text); font-size: .9rem; outline: none;
+      font-family: inherit; transition: border-color .2s;
+    }
+    .comment-form input:focus, .comment-form textarea:focus { border-color: var(--accent, #1a73e8); }
+    .comment-form input { flex: 1; min-width: 150px; }
+    .comment-form textarea { width: 100%; min-height: 80px; resize: vertical; }
+    .comment-form .btn {
+      padding: 8px 24px; border: none; background: #1a73e8; color: #fff;
+      font-size: .9rem; border-radius: 6px; cursor: pointer; transition: opacity .2s;
+    }
+    .comment-form .btn:hover { opacity: .85; }
+    .comment-form .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .comment-msg { font-size: .85rem; margin-top: 6px; }
+    .comment-msg.success { color: #27ae60; }
+    .comment-msg.error { color: var(--danger, #c0392b); }
+
+    .comment-list { list-style: none; padding: 0; }
+    .comment-item {
+      padding: 16px 0; border-bottom: 1px solid var(--border);
+    }
+    .comment-item .cmt-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+    }
+    .comment-item .cmt-author { font-weight: 600; font-size: .9rem; }
+    .comment-item .cmt-time { font-size: .8rem; color: var(--muted); }
+    .comment-item .cmt-content { font-size: .9rem; line-height: 1.6; word-break: break-word; }
+    .no-comments { color: var(--muted); font-size: .9rem; }
   </style>
 </head>
 <body>
@@ -84,6 +119,23 @@
   </nav>
 
   <div id="postContainer" class="loading" data-i18n="loading">Loading...</div>
+
+  <!-- 评论区 -->
+  <div id="commentSection" class="comment-section" style="display:none">
+    <h3 data-i18n="comments_title">Comments</h3>
+    <div class="comment-form">
+      <div class="row">
+        <input type="text" id="cmtAuthor" data-i18n-ph="comment_name_ph" maxlength="50" />
+        <input type="text" id="cmtHp" style="display:none" tabindex="-1" autocomplete="off" />
+      </div>
+      <textarea id="cmtContent" data-i18n-ph="comment_content_ph" maxlength="5000"></textarea>
+      <div style="margin-top:10px">
+        <button class="btn" id="cmtSubmit" onclick="submitComment()" data-i18n="comment_submit">Submit</button>
+        <span class="comment-msg" id="cmtMsg"></span>
+      </div>
+    </div>
+    <ul class="comment-list" id="commentList"></ul>
+  </div>
 
   <div class="back-link"><a href="/" data-i18n="back_home">← Back to Home</a></div>
 </div>
@@ -150,6 +202,10 @@
         '</div>' +
         '<div class="post-body">' + renderContent(post.content, contentType) + '</div>' +
         '</article>';
+
+      // 加载评论区
+      document.getElementById("commentSection").style.display = "block";
+      loadComments();
     } catch (e) {
       container.className = "error";
       container.innerHTML = '<p>' + tt("post_load_failed") + '</p><button onclick="loadPost()">' + tt("retry") + '</button>';
@@ -158,6 +214,70 @@
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // ===== 评论功能 =====
+  async function loadComments() {
+    var list = document.getElementById("commentList");
+    try {
+      var res = await fetch("/api/comments/" + encodeURIComponent(slug));
+      if (!res.ok) throw new Error("Failed");
+      var comments = await res.json();
+      if (!comments.length) {
+        list.innerHTML = '<li class="no-comments">' + tt("no_comments") + '</li>';
+        return;
+      }
+      list.innerHTML = comments.map(function(c) {
+        return '<li class="comment-item">' +
+          '<div class="cmt-header">' +
+          '<span class="cmt-author">' + esc(c.author) + '</span>' +
+          '<span class="cmt-time">' + new Date(c.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) + '</span>' +
+          '</div>' +
+          '<div class="cmt-content">' + esc(c.content) + '</div>' +
+          '</li>';
+      }).join("");
+    } catch (e) {
+      list.innerHTML = '<li class="no-comments">' + tt("load_comments_failed") + '</li>';
+    }
+  }
+
+  async function submitComment() {
+    var author = document.getElementById("cmtAuthor").value.trim();
+    var content = document.getElementById("cmtContent").value.trim();
+    var msg = document.getElementById("cmtMsg");
+    var btn = document.getElementById("cmtSubmit");
+
+    if (!author) { msg.textContent = tt("need_name"); msg.className = "comment-msg error"; return; }
+    if (!content) { msg.textContent = tt("need_comment"); msg.className = "comment-msg error"; return; }
+
+    // 简易蜜罐：隐藏字段非空则静默拒绝
+    if (document.getElementById("cmtHp").value) return;
+
+    btn.disabled = true;
+    btn.textContent = "...";
+    msg.textContent = "";
+    msg.className = "comment-msg";
+
+    try {
+      var res = await fetch("/api/comments/" + encodeURIComponent(slug), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author: author, content: content })
+      });
+      if (!res.ok) {
+        var e = await res.json();
+        throw new Error(e.error || "Submit failed");
+      }
+      document.getElementById("cmtContent").value = "";
+      msg.textContent = tt("comment_success");
+      msg.className = "comment-msg success";
+      loadComments();
+    } catch (e) {
+      msg.textContent = tt("comment_failed") + ": " + e.message;
+      msg.className = "comment-msg error";
+    }
+    btn.disabled = false;
+    btn.textContent = tt("comment_submit");
   }
 
   loadPost();
