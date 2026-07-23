@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Hankv Blog</title>
   <script>
-    // 旧后台入口：已迁移到 /admin/ 目录（登录页 index.html），这里自动跳转，避免旧链接 404
+    // 登录页已迁移到同目录 index.html（访问 /admin/ 即进入）
+    // 这里自动跳转，兼容直接访问 /admin/login.html 的旧链接/书签
     location.replace("/admin/");
   </script>
 </head>
 <body>
   <p style="text-align:center;margin-top:40px;font-family:sans-serif">
-    Redirecting to <a href="/admin/">admin login</a>&hellip;
+    Redirecting to <a href="/admin/">admin</a>&hellip;
   </p>
 </body>
 </html>

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Write Post — Hankv Blog</title>
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #ffffff; --text: #1a1a1a;
+      --border: #d0d0d0; --accent: #0051c3;
+      --card: #f8f8f8; --danger: #c0392b;
+    }
+    [data-theme="dark"] {
+      --bg: #111111; --text: #e0e0e0;
+      --border: #333; --accent: #5b9bd5;
+      --card: #1a1a1a; --danger: #e74c3c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: background .3s, color .3s;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .top-bar h1 { font-size: 1.3rem; }
+    .top-bar a { color: var(--text); text-decoration: none; opacity: .7; font-size: .9rem; }
+    .top-bar a:hover { opacity: 1; }
+    .top-bar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .lang-select {
+      padding: 2px 6px; font-size: 0.8rem;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      outline: none; opacity: 0.7; border-radius: 4px; cursor: pointer;
+    }
+    .lang-select:focus { opacity: 1; }
+
+    .btn {
+      padding: 10px 28px; border: none; background: var(--accent); color: #fff;
+      font-size: 1rem; border-radius: 4px; cursor: pointer; transition: opacity .2s;
+      text-decoration: none; display: inline-block;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-sm { padding: 4px 12px; font-size: .85rem; }
+
+    /* 编辑区 */
+    .editor-header {
+      display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: .8rem; opacity: .7; }
+    .field input, .field select {
+      padding: 8px 12px; border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: .95rem; outline: none; border-radius: 4px;
+      min-width: 180px;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    /* 标签联想下拉 */
+    .field.tag-field { position: relative; }
+    .tag-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; margin-top: 2px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      max-height: 200px; overflow-y: auto; z-index: 50; display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    }
+    .tag-suggestions.active { display: block; }
+    .tag-suggestions .sug {
+      padding: 8px 12px; cursor: pointer; font-size: .9rem; white-space: nowrap;
+    }
+    .tag-suggestions .sug:hover, .tag-suggestions .sug.highlight {
+      background: var(--accent); color: #fff;
+    }
+    .tag-suggestions .empty { padding: 8px 12px; opacity: .5; font-size: .85rem; }
+    .field.slug input { min-width: 220px; }
+    .field.title { flex: 1; min-width: 300px; }
+    .field.title input { width: 100%; }
+    textarea#contentInput {
+      width: 100%; min-height: 400px; padding: 14px; font: 15px/1.7 monospace;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      outline: none; border-radius: 4px; resize: vertical; margin-bottom: 12px;
+    }
+    textarea#contentInput:focus { border-color: var(--accent); }
+    .content-wrap { position: relative; }
+    .editor-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .msg { font-size: .9rem; opacity: .7; }
+
+    /* 预览弹出层 */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 100; justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg); max-width: 800px; width: 90%; max-height: 80vh;
+      border-radius: 8px; padding: 32px; overflow-y: auto;
+    }
+    .modal-close { float: right; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+
+    @media (max-width: 600px) {
+      .field { width: 100%; }
+      .field input, .field select { min-width: 0 !important; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <h1 data-i18n="write_post">Write Post</h1>
+    <div class="top-bar-right">
+      <a href="comments.html" data-i18n="manage_comments">Comments</a>
+      <a href="posts.html" data-i18n="manage_posts">Posts</a>
+      <a href="/" target="_blank" data-i18n="view_site">View Site</a>
+      <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
+        <option value="en">EN</option>
+        <option value="zh">中文</option>
+      </select>
+      <button class="lang-select" onclick="toggleTheme()" title="Theme">&#9728;/&#9790;</button>
+      <button class="btn btn-sm btn-outline" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </div>
+
+  <!-- ===== 编辑器（写文章） ===== -->
+  <div id="editor" class="editor">
+    <div class="editor-header">
+      <div class="field title">
+        <label data-i18n="title_label">Title</label>
+        <input type="text" id="titleInput" data-i18n-ph="title_ph" />
+      </div>
+      <div class="field slug">
+        <label data-i18n="slug_label">Slug</label>
+        <input type="text" id="slugInput" data-i18n-ph="slug_ph" />
+      </div>
+      <div class="field">
+        <label data-i18n="category_label">Category</label>
+        <select id="catInput">
+          <option value="">—</option>
+          <option value="Tech">Tech</option>
+          <option value="Life">Life</option>
+          <option value="Notes">Notes</option>
+          <option value="Projects">Projects</option>
+        </select>
+      </div>
+      <div class="field tag-field">
+        <label data-i18n="tags_label">Tags (comma)</label>
+        <input type="text" id="tagsInput" data-i18n-ph="tags_ph" autocomplete="off" />
+        <div id="tagSuggestions" class="tag-suggestions"></div>
+      </div>
+      <div class="field" style="min-width:130px">
+        <label data-i18n="content_type_label">Content Type</label>
+        <select id="contentTypeSelect" onchange="onContentTypeChange()">
+          <option value="html" data-i18n="content_html">HTML</option>
+          <option value="markdown" data-i18n="content_markdown">Markdown</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="content-wrap">
+      <textarea id="contentInput" data-i18n-ph="content_ph_html"></textarea>
+      <div id="htmlTagSuggestions" class="tag-suggestions"></div>
+    </div>
+
+    <div class="editor-actions">
+      <button class="btn" id="saveBtn" onclick="savePost()" data-i18n="publish">Publish</button>
+      <button class="btn btn-outline" onclick="previewPost()" data-i18n="preview">Preview</button>
+      <button class="btn btn-outline" onclick="newPost()" data-i18n="new_draft">New Draft</button>
+      <a class="btn btn-outline" href="posts.html" data-i18n="manage_posts">Posts</a>
+      <span class="msg" id="editMsg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 预览弹窗 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closePreview(event)">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/i18n.js"></script>
+<script src="common.js"></script>
+<script>
+  // 配置 marked
+  if (typeof marked !== 'undefined') {
+    marked.setOptions({ breaks: true, gfm: true });
+  }
+
+  // file:// 协议提示：直接双击打开本地文件会导致 API 请求失败
+  if (window.location.protocol === "file:") {
+    var warn = document.createElement("div");
+    warn.style.cssText = "max-width:600px;margin:40px auto;padding:24px;border:1px solid var(--border);border-radius:8px;text-align:center;opacity:.9";
+    warn.innerHTML = '<h2>' + tt("local_server") + '</h2>' +
+      '<p class="msg" style="margin-top:12px">' + tt("admin_need_server") + '</p>';
+    var c = document.querySelector(".container");
+    if (c) c.prepend(warn);
+  }
+
+  var editingSlug = null;
+  var currentContentType = "html";
+  var allTags = [];       // 所有文章的去重标签集合，用于联想
+  var tagSugIndex = -1;   // 当前高亮的联想项索引
+
+  function onContentTypeChange() {
+    var sel = document.getElementById("contentTypeSelect");
+    currentContentType = sel.value;
+    var ta = document.getElementById("contentInput");
+    if (currentContentType === "markdown") {
+      ta.setAttribute("data-i18n-ph", "content_ph_md");
+    } else {
+      ta.setAttribute("data-i18n-ph", "content_ph_html");
+    }
+    applyAllTranslations();
+  }
+
+  function renderContent(content, contentType) {
+    if (contentType === "markdown" && typeof marked !== 'undefined') {
+      return marked.parse(content);
+    }
+    return content;
+  }
+
+  function newPost() {
+    editingSlug = null;
+    document.getElementById("titleInput").value = "";
+    document.getElementById("slugInput").value = "";
+    document.getElementById("catInput").value = "";
+    document.getElementById("tagsInput").value = "";
+    document.getElementById("contentInput").value = "";
+    document.getElementById("contentTypeSelect").value = "html";
+    currentContentType = "html";
+    onContentTypeChange();
+    document.getElementById("saveBtn").textContent = tt("publish");
+    document.getElementById("editMsg").textContent = "";
+    document.getElementById("titleInput").focus();
+  }
+
+  async function savePost() {
+    var title = document.getElementById("titleInput").value.trim();
+    var content = document.getElementById("contentInput").value.trim();
+    var slug = document.getElementById("slugInput").value.trim();
+    var category = document.getElementById("catInput").value.trim();
+    var tags = document.getElementById("tagsInput").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
+    var contentType = document.getElementById("contentTypeSelect").value;
+
+    if (!title) return msg(tt("need_title"), true);
+    if (!content) return msg(tt("need_content"), true);
+    if (!slug) {
+      slug = title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-").replace(/^-|-$/g, "");
+      document.getElementById("slugInput").value = slug;
+    }
+
+    var body = { title: title, content: content, slug: slug, category: category, tags: tags, content_type: contentType };
+    var method = editingSlug ? "PUT" : "POST";
+    var url = editingSlug ? "/api/posts/" + editingSlug : "/api/posts";
+
+    try {
+      var res = await fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(body) });
+      if (res.status === 401) return logout();
+      if (!res.ok) {
+        var e = await res.json();
+        return msg(tt("error_prefix") + (e.error || tt("unknown")), true);
+      }
+      msg(tt("saved"));
+      editingSlug = slug;
+      document.getElementById("saveBtn").textContent = tt("update_btn");
+    } catch (e) {
+      msg(tt("network_error") + ": " + e.message, true);
+    }
+  }
+
+  function msg(text, isErr) {
+    var el = document.getElementById("editMsg");
+    el.textContent = text;
+    el.style.color = isErr ? "var(--danger)" : "";
+    setTimeout(function() { el.textContent = ""; }, 3000);
+  }
+
+  async function editPost(slug) {
+    try {
+      var res = await fetch("/api/posts/" + slug);
+      if (!res.ok) return msg(tt("post_not_found_err"), true);
+      var p = await res.json();
+      editingSlug = slug;
+      document.getElementById("titleInput").value = p.title;
+      document.getElementById("slugInput").value = p.slug;
+      document.getElementById("catInput").value = p.category || "";
+      document.getElementById("tagsInput").value = (p.tags || []).join(", ");
+      document.getElementById("contentInput").value = p.content;
+      currentContentType = p.content_type || "html";
+      document.getElementById("contentTypeSelect").value = currentContentType;
+      onContentTypeChange();
+      document.getElementById("saveBtn").textContent = tt("update_btn");
+      document.getElementById("editMsg").textContent = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      msg(tt("load_error"), true);
+    }
+  }
+
+  // ===== 预览 =====
+  function previewPost() {
+    var title = document.getElementById("titleInput").value || tt("untitled");
+    var content = document.getElementById("contentInput").value || "<p>" + tt("no_content") + "</p>";
+    var contentType = document.getElementById("contentTypeSelect").value;
+    var rendered = renderContent(content, contentType);
+    document.getElementById("modalContent").innerHTML =
+      '<button class="modal-close" onclick="document.getElementById(\'modalOverlay\').classList.remove(\'active\')">&times;</button>' +
+      '<h1>' + esc(title) + '</h1>' +
+      '<div style="margin-top:24px">' + rendered + '</div>';
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function closePreview(e) {
+    if (e.target === document.getElementById("modalOverlay")) {
+      document.getElementById("modalOverlay").classList.remove("active");
+    }
+  }
+
+  // ===== 标签联想 =====
+  function buildAllTags(posts) {
+    var set = {};
+    posts.forEach(function(p) {
+      if (p.tags && p.tags.length) {
+        p.tags.forEach(function(t) { if (t) set[t] = true; });
+      }
+    });
+    allTags = Object.keys(set).sort();
+  }
+
+  function setupTagAutocomplete() {
+    var input = document.getElementById("tagsInput");
+    var box = document.getElementById("tagSuggestions");
+    if (!input || !box) return;
+
+    input.addEventListener("input", showTagSuggestions);
+
+    input.addEventListener("keydown", function(e) {
+      var items = box.querySelectorAll(".sug");
+      if (!box.classList.contains("active") || !items.length) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        tagSugIndex = (tagSugIndex + 1) % items.length;
+        updateSugHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        tagSugIndex = (tagSugIndex - 1 + items.length) % items.length;
+        updateSugHighlight(items);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectTag(items[tagSugIndex >= 0 ? tagSugIndex : 0].getAttribute("data-tag"));
+      } else if (e.key === "Escape") {
+        hideTagSuggestions();
+      }
+    });
+
+    input.addEventListener("blur", function() { setTimeout(hideTagSuggestions, 150); });
+
+    box.addEventListener("mousedown", function(e) {
+      var sug = e.target.closest(".sug");
+      if (sug) { e.preventDefault(); selectTag(sug.getAttribute("data-tag")); }
+    });
+  }
+
+  function updateSugHighlight(items) {
+    items.forEach(function(it, i) { it.classList.toggle("highlight", i === tagSugIndex); });
+  }
+
+  function showTagSuggestions() {
+    var input = document.getElementById("tagsInput");
+    var box = document.getElementById("tagSuggestions");
+    var val = input.value;
+    var token = val.slice(val.lastIndexOf(",") + 1).trim().toLowerCase();
+    if (!token) { hideTagSuggestions(); return; }
+    if (!allTags.length) {
+      box.innerHTML = '<div class="empty">' + tt("no_tags_hint") + '</div>';
+      box.classList.add("active");
+      return;
+    }
+    var matches = allTags.filter(function(t) {
+      var tl = t.toLowerCase();
+      return tl.indexOf(token) !== -1 && tl !== token;
+    });
+    if (!matches.length) { hideTagSuggestions(); return; }
+    tagSugIndex = -1;
+    box.innerHTML = matches.map(function(t) {
+      return '<div class="sug" data-tag="' + esc(t) + '">' + esc(t) + '</div>';
+    }).join("");
+    box.classList.add("active");
+  }
+
+  function hideTagSuggestions() {
+    var box = document.getElementById("tagSuggestions");
+    box.classList.remove("active");
+    box.innerHTML = "";
+    tagSugIndex = -1;
+  }
+
+  function selectTag(tag) {
+    var input = document.getElementById("tagsInput");
+    var val = input.value;
+    var idx = val.lastIndexOf(",");
+    var prefix = idx === -1 ? "" : val.slice(0, idx + 1) + " ";
+    input.value = prefix + tag + ", ";
+    input.focus();
+    hideTagSuggestions();
+  }
+
+  // ===== HTML 标签联想（在正文框内输入 < 触发，HTML / Markdown 模式通用）=====
+  var htmlTagList = [
+    "a","abbr","address","article","aside","audio","b","blockquote","body","br","button",
+    "canvas","caption","cite","code","col","colgroup","data","datalist","dd","del","details",
+    "dfn","dialog","div","dl","dt","em","embed","fieldset","figcaption","figure","footer",
+    "form","h1","h2","h3","h4","h5","h6","head","header","hgroup","hr","html","i","iframe",
+    "img","input","ins","kbd","label","legend","li","link","main","map","mark","meta","meter",
+    "nav","noscript","object","ol","optgroup","option","output","p","param","picture","pre",
+    "progress","q","rp","rt","ruby","s","samp","script","section","select","small","source",
+    "span","strong","style","sub","summary","sup","table","tbody","td","template","textarea",
+    "tfoot","th","thead","time","title","tr","track","u","ul","var","video","wbr"
+  ];
+  var htmlVoidTags = { "br":1,"hr":1,"img":1,"input":1,"meta":1,"link":1,"area":1,"base":1,"col":1,"embed":1,"source":1,"track":1,"wbr":1,"param":1 };
+  var htmlSugIndex = -1;
+
+  function setupHtmlTagAutocomplete() {
+    var ta = document.getElementById("contentInput");
+    var box = document.getElementById("htmlTagSuggestions");
+    if (!ta || !box) return;
+
+    ta.addEventListener("input", showHtmlTagSuggestions);
+
+    ta.addEventListener("keydown", function(e) {
+      var items = box.querySelectorAll(".sug");
+      if (!box.classList.contains("active") || !items.length) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        htmlSugIndex = (htmlSugIndex + 1) % items.length;
+        updateHtmlSugHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        htmlSugIndex = (htmlSugIndex - 1 + items.length) % items.length;
+        updateHtmlSugHighlight(items);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        var i = htmlSugIndex >= 0 ? htmlSugIndex : 0;
+        selectHtmlTag(items[i].getAttribute("data-tag"), ta, box);
+      } else if (e.key === "Escape") {
+        hideHtmlTagSuggestions(box);
+      }
+    });
+
+    ta.addEventListener("blur", function() { setTimeout(function() { hideHtmlTagSuggestions(box); }, 150); });
+    box.addEventListener("mousedown", function(e) {
+      var sug = e.target.closest(".sug");
+      if (sug) { e.preventDefault(); selectHtmlTag(sug.getAttribute("data-tag"), ta, box); }
+    });
+  }
+
+  function updateHtmlSugHighlight(items) {
+    items.forEach(function(it, i) { it.classList.toggle("highlight", i === htmlSugIndex); });
+  }
+
+  // 计算 textarea 光标在文本区内的像素坐标（基于 monospace 等宽字体）
+  var _charWidth = null;
+  function getCharWidth(ta) {
+    if (_charWidth !== null) return _charWidth;
+    var ctx = document.createElement("canvas").getContext("2d");
+    var cs = getComputedStyle(ta);
+    ctx.font = cs.fontSize + " " + cs.fontFamily;
+    _charWidth = ctx.measureText("M").width; // monospace 下任意字符等宽
+    return _charWidth;
+  }
+  function getCaretPos(ta) {
+    var cs = getComputedStyle(ta);
+    var fontSize = parseFloat(cs.fontSize) || 15;
+    var lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.7;
+    var padLeft = parseFloat(cs.paddingLeft) || 0;
+    var padTop = parseFloat(cs.paddingTop) || 0;
+    var borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+    var borderTop = parseFloat(cs.borderTopWidth) || 0;
+    var caret = ta.selectionStart;
+    var lines = ta.value.slice(0, caret).split("\n");
+    var row = lines.length - 1;
+    var col = lines[row].length;
+    var cw = getCharWidth(ta);
+    var top = ta.offsetTop + borderTop + padTop + row * lineHeight + lineHeight + 2;
+    var left = ta.offsetLeft + borderLeft + padLeft + col * cw;
+    top -= ta.scrollTop;
+    left -= ta.scrollLeft;
+    return { top: top, left: left };
+  }
+
+  function showHtmlTagSuggestions() {
+    var ta = document.getElementById("contentInput");
+    var box = document.getElementById("htmlTagSuggestions");
+    var caret = ta.selectionStart;
+    var before = ta.value.slice(0, caret);
+    var lt = before.lastIndexOf("<");
+    if (lt === -1) { hideHtmlTagSuggestions(box); return; }
+    var between = before.slice(lt + 1);
+    if (between.indexOf(">") !== -1 || between.indexOf(" ") !== -1) { hideHtmlTagSuggestions(box); return; }
+    var closing = between.charAt(0) === "/";
+    var matchToken = (closing ? between.slice(1) : between).toLowerCase();
+    var matches = htmlTagList.filter(function(t) {
+      var tl = t.toLowerCase();
+      return tl.indexOf(matchToken) === 0 && tl !== matchToken;
+    });
+    if (!matches.length) { hideHtmlTagSuggestions(box); return; }
+    htmlSugIndex = -1;
+    box.innerHTML = matches.slice(0, 12).map(function(t) {
+      var label = closing ? "&lt;/" + esc(t) + "&gt;" : "&lt;" + esc(t) + "&gt;";
+      return '<div class="sug" data-tag="' + esc(t) + '">' + label + '</div>';
+    }).join("");
+    var pos = getCaretPos(ta);
+    box.style.top = pos.top + "px";
+    box.style.left = pos.left + "px";
+    box.style.right = "auto";
+    box.style.maxWidth = Math.max(140, ta.clientWidth - pos.left - 4) + "px";
+    box.classList.add("active");
+  }
+
+  function hideHtmlTagSuggestions(box) {
+    if (!box) box = document.getElementById("htmlTagSuggestions");
+    box.classList.remove("active");
+    box.innerHTML = "";
+    htmlSugIndex = -1;
+  }
+
+  function selectHtmlTag(tag, ta, box) {
+    var caret = ta.selectionStart;
+    var before = ta.value.slice(0, caret);
+    var lt = before.lastIndexOf("<");
+    var after = ta.value.slice(caret);
+    var between = before.slice(lt + 1);
+    var closing = between.charAt(0) === "/";
+    var tagName = tag.toLowerCase();
+    var open = "<" + tagName + ">";
+    var insert, caretOffset;
+    if (closing) {
+      insert = "</" + tagName + ">";
+      caretOffset = lt + insert.length;
+    } else if (htmlVoidTags[tagName]) {
+      insert = open;
+      caretOffset = lt + insert.length;
+    } else {
+      insert = open + "</" + tagName + ">";
+      caretOffset = lt + open.length;
+    }
+    ta.value = ta.value.slice(0, lt) + insert + after;
+    ta.selectionStart = ta.selectionEnd = caretOffset;
+    ta.focus();
+    hideHtmlTagSuggestions(box);
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // 仅拉取文章用于构建标签联想集合（不渲染列表）
+  async function loadAllTags() {
+    try {
+      var res = await fetch("/api/posts");
+      if (res.ok) {
+        var posts = await res.json();
+        buildAllTags(posts);
+      }
+    } catch (e) { /* 标签联想失败不影响写作 */ }
+  }
+
+  // Ctrl+S 保存
+  document.addEventListener("keydown", function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      savePost();
+    }
+  });
+
+  // 语言切换后更新保存按钮文字
+  var origSetLang = setLang;
+  setLang = function(lang) {
+    origSetLang(lang);
+    var btn = document.getElementById("saveBtn");
+    if (btn && editingSlug) btn.textContent = tt("update_btn");
+    else if (btn) btn.textContent = tt("publish");
+    onContentTypeChange();
+  };
+
+  // ===== 启动：先校验登录态，再根据 ?edit=slug 加载编辑或新建草稿 =====
+  async function boot() {
+    if (!requireAuth()) return;
+    var editSlug = new URLSearchParams(location.search).get("edit");
+    if (editSlug) {
+      await editPost(editSlug);
+    } else {
+      newPost();
+    }
+    await loadAllTags();
+    setupTagAutocomplete();
+    setupHtmlTagAutocomplete();
+  }
+  boot();
+</script>
+</body>
+</html>
