@@ -1,0 +1,9 @@
+{
+  "name": "hankv-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hankv Blog on Cloudflare Pages",
+  "dependencies": {
+    "marked": "^12.0.0"
+  }
+}
