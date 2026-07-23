@@ -102,6 +102,7 @@
       outline: none; border-radius: 4px; resize: vertical; margin-bottom: 12px;
     }
     textarea#contentInput:focus { border-color: var(--accent); }
+    .content-wrap { position: relative; }
     .editor-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .msg { font-size: .9rem; opacity: .7; }
 
@@ -192,7 +193,10 @@
       </div>
     </div>
 
-    <textarea id="contentInput" data-i18n-ph="content_ph_html"></textarea>
+    <div class="content-wrap">
+      <textarea id="contentInput" data-i18n-ph="content_ph_html"></textarea>
+      <div id="htmlTagSuggestions" class="tag-suggestions"></div>
+    </div>
 
     <div class="editor-actions">
       <button class="btn" id="saveBtn" onclick="savePost()" data-i18n="publish">Publish</button>
@@ -220,6 +224,17 @@
   // 配置 marked
   if (typeof marked !== 'undefined') {
     marked.setOptions({ breaks: true, gfm: true });
+  }
+
+  // file:// 协议提示：直接双击打开本地文件会导致 API 请求失败
+  // （登录、文章列表、标签联想全部不可用），给出明确引导而不是静默失败
+  if (window.location.protocol === "file:") {
+    var warn = document.createElement("div");
+    warn.style.cssText = "max-width:600px;margin:40px auto;padding:24px;border:1px solid var(--border);border-radius:8px;text-align:center;opacity:.9";
+    warn.innerHTML = '<h2>' + tt("local_server") + '</h2>' +
+      '<p class="msg" style="margin-top:12px">' + tt("admin_need_server") + '</p>';
+    var c = document.querySelector(".container");
+    if (c) c.prepend(warn);
   }
 
   var token = localStorage.getItem("admin_token") || "";
@@ -474,6 +489,11 @@
     // 取最后一个逗号之后的片段作为「正在输入」的标签
     var token = val.slice(val.lastIndexOf(",") + 1).trim().toLowerCase();
     if (!token) { hideTagSuggestions(); return; }
+    if (!allTags.length) {
+      box.innerHTML = '<div class="empty">' + tt("no_tags_hint") + '</div>';
+      box.classList.add("active");
+      return;
+    }
     var matches = allTags.filter(function(t) {
       var tl = t.toLowerCase();
       return tl.indexOf(token) !== -1 && tl !== token;
@@ -503,6 +523,117 @@
     hideTagSuggestions();
   }
 
+  // ===== HTML 标签联想（在正文框内输入 < 触发，HTML / Markdown 模式通用）=====
+  var htmlTagList = [
+    "a","abbr","address","article","aside","audio","b","blockquote","body","br","button",
+    "canvas","caption","cite","code","col","colgroup","data","datalist","dd","del","details",
+    "dfn","dialog","div","dl","dt","em","embed","fieldset","figcaption","figure","footer",
+    "form","h1","h2","h3","h4","h5","h6","head","header","hgroup","hr","html","i","iframe",
+    "img","input","ins","kbd","label","legend","li","link","main","map","mark","meta","meter",
+    "nav","noscript","object","ol","optgroup","option","output","p","param","picture","pre",
+    "progress","q","rp","rt","ruby","s","samp","script","section","select","small","source",
+    "span","strong","style","sub","summary","sup","table","tbody","td","template","textarea",
+    "tfoot","th","thead","time","title","tr","track","u","ul","var","video","wbr"
+  ];
+  var htmlVoidTags = { "br":1,"hr":1,"img":1,"input":1,"meta":1,"link":1,"area":1,"base":1,"col":1,"embed":1,"source":1,"track":1,"wbr":1,"param":1 };
+  var htmlSugIndex = -1;
+
+  function setupHtmlTagAutocomplete() {
+    var ta = document.getElementById("contentInput");
+    var box = document.getElementById("htmlTagSuggestions");
+    if (!ta || !box) return;
+
+    ta.addEventListener("input", showHtmlTagSuggestions);
+
+    ta.addEventListener("keydown", function(e) {
+      var items = box.querySelectorAll(".sug");
+      if (!box.classList.contains("active") || !items.length) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        htmlSugIndex = (htmlSugIndex + 1) % items.length;
+        updateHtmlSugHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        htmlSugIndex = (htmlSugIndex - 1 + items.length) % items.length;
+        updateHtmlSugHighlight(items);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        var i = htmlSugIndex >= 0 ? htmlSugIndex : 0;
+        selectHtmlTag(items[i].getAttribute("data-tag"), ta, box);
+      } else if (e.key === "Escape") {
+        hideHtmlTagSuggestions(box);
+      }
+    });
+
+    ta.addEventListener("blur", function() { setTimeout(function() { hideHtmlTagSuggestions(box); }, 150); });
+    box.addEventListener("mousedown", function(e) {
+      var sug = e.target.closest(".sug");
+      if (sug) { e.preventDefault(); selectHtmlTag(sug.getAttribute("data-tag"), ta, box); }
+    });
+  }
+
+  function updateHtmlSugHighlight(items) {
+    items.forEach(function(it, i) { it.classList.toggle("highlight", i === htmlSugIndex); });
+  }
+
+  function showHtmlTagSuggestions() {
+    var ta = document.getElementById("contentInput");
+    var box = document.getElementById("htmlTagSuggestions");
+    var caret = ta.selectionStart;
+    var before = ta.value.slice(0, caret);
+    var lt = before.lastIndexOf("<");
+    if (lt === -1) { hideHtmlTagSuggestions(box); return; }
+    var between = before.slice(lt + 1);
+    // 标签内若已出现 > 或空格（属性），停止联想
+    if (between.indexOf(">") !== -1 || between.indexOf(" ") !== -1) { hideHtmlTagSuggestions(box); return; }
+    var closing = between.charAt(0) === "/";
+    var matchToken = (closing ? between.slice(1) : between).toLowerCase();
+    var matches = htmlTagList.filter(function(t) {
+      var tl = t.toLowerCase();
+      return tl.indexOf(matchToken) === 0 && tl !== matchToken;
+    });
+    if (!matches.length) { hideHtmlTagSuggestions(box); return; }
+    htmlSugIndex = -1;
+    box.innerHTML = matches.slice(0, 12).map(function(t) {
+      var label = closing ? "&lt;/" + esc(t) + "&gt;" : "&lt;" + esc(t) + "&gt;";
+      return '<div class="sug" data-tag="' + esc(t) + '">' + label + '</div>';
+    }).join("");
+    box.classList.add("active");
+  }
+
+  function hideHtmlTagSuggestions(box) {
+    if (!box) box = document.getElementById("htmlTagSuggestions");
+    box.classList.remove("active");
+    box.innerHTML = "";
+    htmlSugIndex = -1;
+  }
+
+  function selectHtmlTag(tag, ta, box) {
+    var caret = ta.selectionStart;
+    var before = ta.value.slice(0, caret);
+    var lt = before.lastIndexOf("<");
+    var after = ta.value.slice(caret);
+    var between = before.slice(lt + 1);
+    var closing = between.charAt(0) === "/";
+    var tagName = tag.toLowerCase();
+    var open = "<" + tagName + ">";
+    var insert, caretOffset;
+    if (closing) {
+      insert = "</" + tagName + ">";
+      caretOffset = lt + insert.length;
+    } else if (htmlVoidTags[tagName]) {
+      insert = open;
+      caretOffset = lt + insert.length;
+    } else {
+      insert = open + "</" + tagName + ">";
+      caretOffset = lt + open.length; // 光标停在开闭标签之间
+    }
+    ta.value = ta.value.slice(0, lt) + insert + after;
+    ta.selectionStart = ta.selectionEnd = caretOffset;
+    ta.focus();
+    hideHtmlTagSuggestions(box);
+  }
+
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
@@ -530,6 +661,7 @@
   };
 
   setupTagAutocomplete();
+  setupHtmlTagAutocomplete();
 </script>
 </body>
 </html>

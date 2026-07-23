@@ -80,6 +80,8 @@
       need_comment: "Please write a comment",
       comment_success: "Comment submitted!",
       comment_failed: "Failed to submit",
+      admin_need_server: "Please open this page via a local server or after deploy (e.g. npx wrangler dev / npx serve .). Double-clicking the file won't work.",
+      no_tags_hint: "No existing tags yet — publish a post with tags first.",
     },
     zh: {
       search: "搜索...",
@@ -161,6 +163,8 @@
       need_comment: "请输入评论内容",
       comment_success: "评论已提交！",
       comment_failed: "提交失败",
+      admin_need_server: "请通过本地服务器或部署后访问本页（例如 npx wrangler dev 或 npx serve .）。直接双击打开文件无法使用登录、文章列表和标签联想。",
+      no_tags_hint: "还没有已有标签，请先发布一篇带标签的文章。",
     }
   };
 
