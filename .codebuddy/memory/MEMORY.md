@@ -1,6 +1,6 @@
 # Project Memory
 
-## Hankv2016 Blog — Cloudflare Pages 博客系统
+## Hankv Blog — Cloudflare Pages 博客系统
 
 ### 文件结构
 - `index.html` — 首页（侧边栏 + Banner + About Me + 文章列表）

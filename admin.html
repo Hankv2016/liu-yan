@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — Hankv2016 Blog</title>
+  <title>Admin — Hankv Blog</title>
   <style>
     :root, [data-theme="light"] {
       --bg: #ffffff; --text: #1a1a1a;
@@ -153,7 +153,13 @@
       </div>
       <div class="field">
         <label data-i18n="category_label">Category</label>
-        <input type="text" id="catInput" data-i18n-ph="category_ph" />
+        <select id="catInput">
+          <option value="">—</option>
+          <option value="Tech">Tech</option>
+          <option value="Life">Life</option>
+          <option value="Notes">Notes</option>
+          <option value="Projects">Projects</option>
+        </select>
       </div>
       <div class="field">
         <label data-i18n="tags_label">Tags (comma)</label>

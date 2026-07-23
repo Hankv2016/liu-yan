@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Post — Hankv2016 Blog</title>
+  <title>Post — Hankv Blog</title>
   <style>
     :root, [data-theme="light"] {
       --bg: #ffffff; --text: #1a1a1a; --muted: #777; --border: #e0e0e0;
@@ -73,7 +73,7 @@
 <body>
 <div class="container">
   <nav>
-    <a href="/" class="home">Hankv2016 Blog</a>
+    <a href="/" class="home">Hankv Blog</a>
     <div class="nav-right">
       <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
         <option value="en">EN</option>
@@ -128,7 +128,7 @@
       var post = await res.json();
       var contentType = post.content_type || "html";
 
-      document.title = post.title + " — Hankv2016 Blog";
+      document.title = post.title + " — Hankv Blog";
 
       var tagsHtml = "";
       if (post.tags && post.tags.length) {

@@ -13,4 +13,4 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ADMIN_PASSWORD = "change-me-please"
-SITE_TITLE = "Hankv2016 Blog"
+SITE_TITLE = "Hankv Blog"
