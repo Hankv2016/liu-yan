@@ -124,7 +124,11 @@
     </div>
   </nav>
 
-  <div id="postContainer" class="loading" data-i18n="loading">Loading...</div>
+  <main id="postContainer" class="loading">
+    <article id="postArticle" itemscope itemtype="https://schema.org/Article">
+      <div class="post-body" itemprop="articleBody" data-i18n="loading">Loading...</div>
+    </article>
+  </main>
 
   <!-- 评论区 -->
   <div id="commentSection" class="comment-section" style="display:none">
@@ -202,8 +206,13 @@
       }
 
       container.className = "";
-      container.innerHTML =
-        '<article itemscope itemtype="https://schema.org/Article">' +
+      var article = document.getElementById("postArticle");
+      if (!article) {
+        // 重试场景下 article 可能已被错误内容替换，重建语义骨架
+        container.innerHTML = '<article id="postArticle" itemscope itemtype="https://schema.org/Article"></article>';
+        article = document.getElementById("postArticle");
+      }
+      article.innerHTML =
         '<div class="post-header">' +
         '<h1 itemprop="headline">' + esc(post.title) + '</h1>' +
         '<div class="meta">' +
@@ -212,8 +221,7 @@
         '</div>' +
         tagsHtml +
         '</div>' +
-        '<div class="post-body" itemprop="articleBody">' + renderContent(post.content, contentType) + '</div>' +
-        '</article>';
+        '<div class="post-body" itemprop="articleBody">' + renderContent(post.content, contentType) + '</div>';
 
       // 注入 Schema.org JSON-LD 结构化数据，帮助阅读模式/搜索引擎识别正文
       injectJsonLd(post);
