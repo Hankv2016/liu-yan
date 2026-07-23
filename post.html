@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Post — Hankv Blog</title>
+  <meta name="description" content="" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="" />
+  <meta property="og:url" content="" />
+  <meta property="og:site_name" content="Hankv Blog" />
+  <meta property="og:description" content="" />
   <style>
     :root, [data-theme="light"] {
       --bg: #ffffff; --text: #1a1a1a; --muted: #777; --border: #e0e0e0;
@@ -182,6 +188,12 @@
 
       document.title = post.title + " — Hankv Blog";
 
+      // 填充 OG / description meta，增强 Edge 阅读模式与社交分享识别
+      setMeta('meta[name="description"]', post.excerpt || post.title);
+      setMeta('meta[property="og:title"]', post.title);
+      setMeta('meta[property="og:url"]', window.location.href);
+      setMeta('meta[property="og:description"]', post.excerpt || post.title);
+
       var tagsHtml = "";
       if (post.tags && post.tags.length) {
         tagsHtml = '<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">' +
@@ -191,17 +203,20 @@
 
       container.className = "";
       container.innerHTML =
-        '<article>' +
+        '<article itemscope itemtype="https://schema.org/Article">' +
         '<div class="post-header">' +
-        '<h1>' + esc(post.title) + '</h1>' +
+        '<h1 itemprop="headline">' + esc(post.title) + '</h1>' +
         '<div class="meta">' +
-        '<span>' + new Date(post.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"}) + '</span>' +
-        '<span>' + esc(post.category || "") + '</span>' +
+        '<time itemprop="datePublished" datetime="' + esc(post.created_at) + '">' + new Date(post.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"}) + '</time>' +
+        '<span itemprop="articleSection">' + esc(post.category || "") + '</span>' +
         '</div>' +
         tagsHtml +
         '</div>' +
-        '<div class="post-body">' + renderContent(post.content, contentType) + '</div>' +
+        '<div class="post-body" itemprop="articleBody">' + renderContent(post.content, contentType) + '</div>' +
         '</article>';
+
+      // 注入 Schema.org JSON-LD 结构化数据，帮助阅读模式/搜索引擎识别正文
+      injectJsonLd(post);
 
       // 加载评论区
       document.getElementById("commentSection").style.display = "block";
@@ -214,6 +229,34 @@
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // 设置 head 中的 meta 标签内容（若不存在则跳过）
+  function setMeta(selector, value) {
+    var el = document.head.querySelector(selector);
+    if (el) el.setAttribute("content", value);
+  }
+
+  // 注入 Article 的 JSON-LD 结构化数据
+  function injectJsonLd(post) {
+    var old = document.getElementById("articleJsonLd");
+    if (old) old.remove();
+    var data = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": post.title,
+      "datePublished": post.created_at,
+      "dateModified": post.updated_at || post.created_at,
+      "articleSection": post.category,
+      "keywords": (post.tags || []).join(", "),
+      "description": post.excerpt || "",
+      "mainEntityOfPage": window.location.href
+    };
+    var s = document.createElement("script");
+    s.type = "application/ld+json";
+    s.id = "articleJsonLd";
+    s.textContent = JSON.stringify(data);
+    document.head.appendChild(s);
   }
 
   // ===== 评论功能 =====
