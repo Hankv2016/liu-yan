@@ -76,6 +76,23 @@
       min-width: 180px;
     }
     .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    /* 标签联想下拉 */
+    .field.tag-field { position: relative; }
+    .tag-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; margin-top: 2px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      max-height: 200px; overflow-y: auto; z-index: 50; display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    }
+    .tag-suggestions.active { display: block; }
+    .tag-suggestions .sug {
+      padding: 8px 12px; cursor: pointer; font-size: .9rem; white-space: nowrap;
+    }
+    .tag-suggestions .sug:hover, .tag-suggestions .sug.highlight {
+      background: var(--accent); color: #fff;
+    }
+    .tag-suggestions .empty { padding: 8px 12px; opacity: .5; font-size: .85rem; }
     .field.slug input { min-width: 220px; }
     .field.title { flex: 1; min-width: 300px; }
     .field.title input { width: 100%; }
@@ -161,9 +178,10 @@
           <option value="Projects">Projects</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field tag-field">
         <label data-i18n="tags_label">Tags (comma)</label>
-        <input type="text" id="tagsInput" data-i18n-ph="tags_ph" />
+        <input type="text" id="tagsInput" data-i18n-ph="tags_ph" autocomplete="off" />
+        <div id="tagSuggestions" class="tag-suggestions"></div>
       </div>
       <div class="field" style="min-width:130px">
         <label data-i18n="content_type_label">Content Type</label>
@@ -207,6 +225,8 @@
   var token = localStorage.getItem("admin_token") || "";
   var editingSlug = null;
   var currentContentType = "html";
+  var allTags = [];       // 所有文章的去重标签集合，用于联想
+  var tagSugIndex = -1;   // 当前高亮的联想项索引
 
   if (token) { showEditor(); loadPosts(); }
 
@@ -330,6 +350,7 @@
       var res = await fetch("/api/posts");
       if (!res.ok) throw new Error("Load failed");
       var posts = await res.json();
+      buildAllTags(posts);
       if (!posts.length) {
         container.innerHTML = "<p style='opacity:.5'>" + tt("no_posts_yet") + "</p>";
         return;
@@ -397,6 +418,91 @@
     }
   }
 
+  // ===== 标签联想 =====
+  function buildAllTags(posts) {
+    var set = {};
+    posts.forEach(function(p) {
+      if (p.tags && p.tags.length) {
+        p.tags.forEach(function(t) { if (t) set[t] = true; });
+      }
+    });
+    allTags = Object.keys(set).sort();
+  }
+
+  function setupTagAutocomplete() {
+    var input = document.getElementById("tagsInput");
+    var box = document.getElementById("tagSuggestions");
+    if (!input || !box) return;
+
+    input.addEventListener("input", showTagSuggestions);
+
+    input.addEventListener("keydown", function(e) {
+      var items = box.querySelectorAll(".sug");
+      if (!box.classList.contains("active") || !items.length) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        tagSugIndex = (tagSugIndex + 1) % items.length;
+        updateSugHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        tagSugIndex = (tagSugIndex - 1 + items.length) % items.length;
+        updateSugHighlight(items);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectTag(items[tagSugIndex >= 0 ? tagSugIndex : 0].getAttribute("data-tag"));
+      } else if (e.key === "Escape") {
+        hideTagSuggestions();
+      }
+    });
+
+    input.addEventListener("blur", function() { setTimeout(hideTagSuggestions, 150); });
+
+    box.addEventListener("mousedown", function(e) {
+      var sug = e.target.closest(".sug");
+      if (sug) { e.preventDefault(); selectTag(sug.getAttribute("data-tag")); }
+    });
+  }
+
+  function updateSugHighlight(items) {
+    items.forEach(function(it, i) { it.classList.toggle("highlight", i === tagSugIndex); });
+  }
+
+  function showTagSuggestions() {
+    var input = document.getElementById("tagsInput");
+    var box = document.getElementById("tagSuggestions");
+    var val = input.value;
+    // 取最后一个逗号之后的片段作为「正在输入」的标签
+    var token = val.slice(val.lastIndexOf(",") + 1).trim().toLowerCase();
+    if (!token) { hideTagSuggestions(); return; }
+    var matches = allTags.filter(function(t) {
+      var tl = t.toLowerCase();
+      return tl.indexOf(token) !== -1 && tl !== token;
+    });
+    if (!matches.length) { hideTagSuggestions(); return; }
+    tagSugIndex = -1;
+    box.innerHTML = matches.map(function(t) {
+      return '<div class="sug" data-tag="' + esc(t) + '">' + esc(t) + '</div>';
+    }).join("");
+    box.classList.add("active");
+  }
+
+  function hideTagSuggestions() {
+    var box = document.getElementById("tagSuggestions");
+    box.classList.remove("active");
+    box.innerHTML = "";
+    tagSugIndex = -1;
+  }
+
+  function selectTag(tag) {
+    var input = document.getElementById("tagsInput");
+    var val = input.value;
+    var idx = val.lastIndexOf(",");
+    var prefix = idx === -1 ? "" : val.slice(0, idx + 1) + " ";
+    input.value = prefix + tag + ", ";
+    input.focus();
+    hideTagSuggestions();
+  }
+
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
@@ -422,6 +528,8 @@
     // 更新 textarea placeholder
     onContentTypeChange();
   };
+
+  setupTagAutocomplete();
 </script>
 </body>
 </html>

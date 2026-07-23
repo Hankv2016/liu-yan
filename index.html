@@ -161,9 +161,49 @@
         root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
 
+    var allPosts = [];
+
+    function renderPosts(posts, container) {
+        container = container || document.getElementById("postList");
+        if (!posts.length) {
+            container.innerHTML = "<p>" + tt("no_results") + "</p>";
+            return;
+        }
+        container.innerHTML = posts.map(function(p) {
+            var tagsHtml = "";
+            if (p.tags && p.tags.length) {
+                tagsHtml = '<div class="post-tags">' +
+                    p.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
+                    '</div>';
+            }
+            return '<article class="post-card"><h3><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></h3><time>' + new Date(p.created_at).toLocaleDateString() + '</time>' + tagsHtml + '<p>' + esc(p.excerpt || '') + '</p></article>';
+        }).join("");
+    }
+
+    function buildTagCloud(posts, tagCloud) {
+        tagCloud = tagCloud || document.getElementById("tagCloud");
+        var tagCount = {};
+        posts.forEach(function(p) {
+            if (p.tags && p.tags.length) {
+                p.tags.forEach(function(t) {
+                    tagCount[t] = (tagCount[t] || 0) + 1;
+                });
+            }
+        });
+        var tags = Object.keys(tagCount).sort();
+        if (tags.length) {
+            tagCloud.innerHTML = tags.map(function(t) {
+                return '<span class="tag">' + esc(t) + ' (' + tagCount[t] + ')</span>';
+            }).join("");
+        } else {
+            tagCloud.innerHTML = '<span style="opacity:0.5">' + tt("no_posts") + '</span>';
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         var container = document.getElementById("postList");
         var tagCloud = document.getElementById("tagCloud");
+        var searchInput = document.getElementById("searchInput");
 
         if (window.location.protocol === "file:") {
             container.innerHTML = "<p>" + tt("local_server") + "</p>";
@@ -176,44 +216,34 @@
                 return res.json();
             })
             .then(function(posts) {
+                allPosts = posts;
                 if (!posts.length) {
                     container.innerHTML = "<p>" + tt("no_posts") + "</p>";
                     return;
                 }
-
-                // Render post cards with tags
-                container.innerHTML = posts.map(function(p) {
-                    var tagsHtml = "";
-                    if (p.tags && p.tags.length) {
-                        tagsHtml = '<div class="post-tags">' +
-                            p.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
-                            '</div>';
-                    }
-                    return '<article class="post-card"><h3><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></h3><time>' + new Date(p.created_at).toLocaleDateString() + '</time>' + tagsHtml + '<p>' + esc(p.excerpt || '') + '</p></article>';
-                }).join("");
-
-                // Build dynamic tag cloud (count tag frequencies)
-                var tagCount = {};
-                posts.forEach(function(p) {
-                    if (p.tags && p.tags.length) {
-                        p.tags.forEach(function(t) {
-                            tagCount[t] = (tagCount[t] || 0) + 1;
-                        });
-                    }
-                });
-                var tags = Object.keys(tagCount).sort();
-                if (tags.length) {
-                    tagCloud.innerHTML = tags.map(function(t) {
-                        return '<span class="tag">' + esc(t) + ' (' + tagCount[t] + ')</span>';
-                    }).join("");
-                } else {
-                    tagCloud.innerHTML = '<span style="opacity:0.5">' + tt("no_posts") + '</span>';
-                }
+                renderPosts(posts, container);
+                buildTagCloud(posts, tagCloud);
             })
             .catch(function(err) {
                 console.error(err);
                 container.innerHTML = "<p>" + tt("load_failed") + "</p>";
             });
+
+        // Real-time search: filters by title, excerpt, category, and tags
+        searchInput.addEventListener("input", function() {
+            var q = this.value.trim().toLowerCase();
+            if (!q) {
+                renderPosts(allPosts, container);
+                buildTagCloud(allPosts, tagCloud);
+                return;
+            }
+            var filtered = allPosts.filter(function(p) {
+                var hay = [p.title, p.excerpt, p.category, (p.tags || []).join(" ")].join(" ").toLowerCase();
+                return hay.indexOf(q) !== -1;
+            });
+            renderPosts(filtered, container);
+            buildTagCloud(filtered, tagCloud);
+        });
     });
 
     function esc(s) {

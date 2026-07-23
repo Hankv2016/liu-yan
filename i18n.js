@@ -16,6 +16,7 @@
       about_me_text: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.",
       latest_posts: "Latest Posts",
       no_posts: "No posts yet.",
+      no_results: "No matching posts found.",
       load_failed: "Failed to load posts.",
       local_server: "Please start a local server to load posts (e.g. npx serve .).",
 
@@ -96,6 +97,7 @@
       about_me_text: "这是一段关于我的介绍文字，可以在此处修改。",
       latest_posts: "最新文章",
       no_posts: "还没有文章。",
+      no_results: "没有匹配的文章。",
       load_failed: "加载文章失败。",
       local_server: "请启动本地服务器以加载文章（例如 npx serve .）。",
 
