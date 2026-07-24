@@ -71,6 +71,19 @@
     .error button { margin-top: 16px; }
     .error a { color: #1a73e8; }
 
+    /* 文章不存在时展示的文章列表 */
+    .post-list-container { margin-top: 8px; }
+    .post-list-title { font-size: 1.6rem; margin-bottom: 28px; }
+    .post-list { list-style: none; padding: 0; }
+    .post-list-item { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .post-list-item:last-child { border-bottom: none; }
+    .post-list-item a { display: block; color: var(--text); text-decoration: none; }
+    .post-list-item .pli-title { font-size: 1.15rem; font-weight: 600; display: block; margin-bottom: 4px; }
+    .post-list-item a:hover .pli-title { text-decoration: underline; }
+    .post-list-item .pli-meta { font-size: .85rem; color: var(--muted); display: block; margin-bottom: 6px; }
+    .post-list-item .pli-excerpt { font-size: .9rem; color: var(--muted); display: block; line-height: 1.6; }
+    .no-posts { color: var(--muted); text-align: center; padding: 60px 0; }
+
     .back-link { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
     .back-link a { color: var(--text); opacity: .6; text-decoration: none; }
     .back-link a:hover { opacity: 1; }
@@ -119,6 +132,7 @@
       .comment-form .row { flex-direction: column; gap: 10px; }
       .comment-form input { width: 100%; min-width: 0; }
       .comment-form textarea { font-size: 16px; } /* 防止 iOS 聚焦时自动放大 */
+      .post-list-title { font-size: 1.3rem; }
     }
   </style>
 </head>
@@ -194,17 +208,21 @@
       return;
     }
 
+    // 服务端在文章不存在时直接注入了文章列表（SSR），无需再次请求
+    if (container && container.dataset.list === "1") {
+      document.getElementById("commentSection").style.display = "none";
+      return;
+    }
+
     if (!slug) {
-      container.className = "error";
-      container.innerHTML = '<p>' + tt("no_post") + '</p><p><a href="/">' + tt("go_home") + '</a></p>';
+      loadPostList();
       return;
     }
 
     try {
       var res = await fetch("/api/posts/" + slug);
       if (!res.ok) {
-        container.className = "error";
-        container.innerHTML = '<p>' + tt("post_not_found") + '</p><p><a href="/">' + tt("go_home") + '</a></p>';
+        loadPostList();
         return;
       }
       var post = await res.json();
@@ -252,6 +270,36 @@
     } catch (e) {
       container.className = "error";
       container.innerHTML = '<p>' + tt("post_load_failed") + '</p><button onclick="loadPost()">' + tt("retry") + '</button>';
+    }
+  }
+
+  async function loadPostList() {
+    var container = document.getElementById("postContainer");
+    try {
+      var res = await fetch("/api/posts");
+      if (!res.ok) throw new Error("Failed");
+      var posts = await res.json();
+      document.getElementById("commentSection").style.display = "none";
+      document.title = tt("all_posts") + " — Hankv Blog";
+      if (!posts.length) {
+        container.className = "post-list-container";
+        container.innerHTML = '<h1 class="post-list-title">' + tt("all_posts") + '</h1><p class="no-posts">' + tt("no_posts") + '</p>';
+        return;
+      }
+      container.className = "post-list-container";
+      container.innerHTML = '<h1 class="post-list-title">' + tt("all_posts") + '</h1><ul class="post-list">' +
+        posts.map(function(p) {
+          var date = p.created_at ? new Date(p.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"}) : "";
+          var meta = [p.category, date].filter(Boolean).join(" · ");
+          var excerpt = p.excerpt ? '<span class="pli-excerpt">' + esc(p.excerpt) + '</span>' : '';
+          return '<li class="post-list-item"><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' +
+            '<span class="pli-title">' + esc(p.title) + '</span>' +
+            (meta ? '<span class="pli-meta">' + esc(meta) + '</span>' : '') +
+            excerpt + '</a></li>';
+        }).join("") + '</ul>';
+    } catch (e) {
+      container.className = "error";
+      container.innerHTML = '<p>' + tt("post_load_failed") + '</p><button onclick="loadPostList()">' + tt("retry") + '</button>';
     }
   }
 

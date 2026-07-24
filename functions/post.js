@@ -21,8 +21,10 @@ export async function onRequestGet(context) {
     return env.ASSETS.fetch(request);
   }
 
-  // 无 slug：原样返回模板，客户端会显示 "no_post"
+  // 无 slug：注入文章列表，展示所有文章而非错误
   if (!slug) {
+    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env));
+    html = html.replace("<title>Post — Hankv Blog</title>", "<title>Posts — Hankv Blog</title>");
     return htmlResponse(html);
   }
 
@@ -35,8 +37,10 @@ export async function onRequestGet(context) {
     post = null;
   }
 
-  // 文章不存在：原样返回模板，客户端 fetch 会得到 404 并显示 "post_not_found"
+  // 文章不存在：注入文章列表，展示所有文章而非错误
   if (!post) {
+    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env));
+    html = html.replace("<title>Post — Hankv Blog</title>", "<title>Posts — Hankv Blog</title>");
     return htmlResponse(html);
   }
 
@@ -164,4 +168,32 @@ function htmlResponse(html) {
       "Cache-Control": "no-cache",
     },
   });
+}
+
+// 渲染文章列表（文章不存在 / 无 slug 时作为 fallback 页面）
+async function renderListHtml(env) {
+  let posts = [];
+  try {
+    const raw = await env.BLOG_KV.get("posts:list");
+    if (raw) posts = JSON.parse(raw);
+  } catch (e) {}
+  posts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const items = posts.map(function(p) {
+    const date = formatDate(p.created_at);
+    const meta = [p.category, date].filter(Boolean).join(" · ");
+    const excerpt = p.excerpt ? '<span class="pli-excerpt">' + esc(p.excerpt) + '</span>' : '';
+    return '<li class="post-list-item"><a href="/post.html?slug=' + encodeURIComponent(p.slug) + '">' +
+      '<span class="pli-title">' + esc(p.title) + '</span>' +
+      (meta ? '<span class="pli-meta">' + esc(meta) + '</span>' : '') +
+      excerpt + '</a></li>';
+  }).join("");
+
+  const body = posts.length
+    ? '<ul class="post-list">' + items + '</ul>'
+    : '<p class="no-posts" data-i18n="no_posts">No posts yet.</p>';
+
+  return '<main id="postContainer" class="post-list-container" data-list="1">' +
+    '<h1 class="post-list-title" data-i18n="all_posts">All Posts</h1>' +
+    body + '</main>';
 }
