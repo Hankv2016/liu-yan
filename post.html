@@ -109,6 +109,17 @@
     .comment-item .cmt-time { font-size: .8rem; color: var(--muted); }
     .comment-item .cmt-content { font-size: .9rem; line-height: 1.6; word-break: break-word; }
     .no-comments { color: var(--muted); font-size: .9rem; }
+
+    @media (max-width: 600px) {
+      .container { padding: 20px 16px; }
+      nav { margin-bottom: 28px; }
+      .post-header { margin-bottom: 28px; }
+      .post-header h1 { font-size: 1.5rem; }
+      .post-header .meta { gap: 10px; font-size: .82rem; }
+      .comment-form .row { flex-direction: column; gap: 10px; }
+      .comment-form input { width: 100%; min-width: 0; }
+      .comment-form textarea { font-size: 16px; } /* 防止 iOS 聚焦时自动放大 */
+    }
   </style>
 </head>
 <body>

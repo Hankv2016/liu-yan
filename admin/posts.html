@@ -61,6 +61,14 @@
     .post-item .title { font-weight: 600; margin-bottom: 2px; }
     .post-item .meta { font-size: .8rem; opacity: .6; }
     .post-item .actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    @media (max-width: 600px) {
+      .container { padding: 16px 14px; }
+      .top-bar { margin-bottom: 18px; }
+      .post-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .post-item .actions { width: 100%; flex-wrap: wrap; }
+      .post-item .actions .btn { flex: 1; text-align: center; }
+    }
   </style>
 </head>
 <body>

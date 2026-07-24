@@ -104,8 +104,10 @@
     .modal-close { float: right; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
 
     @media (max-width: 600px) {
-      .field { width: 100%; }
+      .container { padding: 16px 14px; }
+      .field, .field.title, .field.slug { width: 100%; min-width: 0; }
       .field input, .field select { min-width: 0 !important; width: 100%; }
+      .editor-actions .btn { flex: 1; }
     }
   </style>
 </head>
