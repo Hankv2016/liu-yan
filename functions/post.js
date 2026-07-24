@@ -21,9 +21,9 @@ export async function onRequestGet(context) {
     return env.ASSETS.fetch(request);
   }
 
-  // 无 slug：注入文章列表，展示所有文章而非错误
+  // 无 slug：先提示"未指定文章"，再展示文章列表
   if (!slug) {
-    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env));
+    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env, "no_post"));
     html = html.replace("<title>Post — Hankv Blog</title>", "<title>Posts — Hankv Blog</title>");
     return htmlResponse(html);
   }
@@ -37,9 +37,9 @@ export async function onRequestGet(context) {
     post = null;
   }
 
-  // 文章不存在：注入文章列表，展示所有文章而非错误
+  // 文章不存在：先提示"文章未找到"，再展示文章列表
   if (!post) {
-    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env));
+    html = html.replace(MAIN_BLOCK_RE, await renderListHtml(env, "post_not_found"));
     html = html.replace("<title>Post — Hankv Blog</title>", "<title>Posts — Hankv Blog</title>");
     return htmlResponse(html);
   }
@@ -171,7 +171,8 @@ function htmlResponse(html) {
 }
 
 // 渲染文章列表（文章不存在 / 无 slug 时作为 fallback 页面）
-async function renderListHtml(env) {
+// noticeKey: 传入 i18n key（如 post_not_found / no_post），在列表上方先提示"文章不存在"
+async function renderListHtml(env, noticeKey) {
   let posts = [];
   try {
     const raw = await env.BLOG_KV.get("posts:list");
@@ -189,11 +190,15 @@ async function renderListHtml(env) {
       excerpt + '</a></li>';
   }).join("");
 
+  const notice = noticeKey
+    ? '<p class="post-list-notice" data-i18n="' + noticeKey + '">' + (noticeKey === "no_post" ? "No post specified." : "Post not found.") + '</p>'
+    : '';
   const body = posts.length
     ? '<ul class="post-list">' + items + '</ul>'
     : '<p class="no-posts" data-i18n="no_posts">No posts yet.</p>';
 
   return '<main id="postContainer" class="post-list-container" data-list="1">' +
+    notice +
     '<h1 class="post-list-title" data-i18n="all_posts">All Posts</h1>' +
     body + '</main>';
 }

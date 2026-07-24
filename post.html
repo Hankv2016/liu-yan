@@ -83,6 +83,10 @@
     .post-list-item .pli-meta { font-size: .85rem; color: var(--muted); display: block; margin-bottom: 6px; }
     .post-list-item .pli-excerpt { font-size: .9rem; color: var(--muted); display: block; line-height: 1.6; }
     .no-posts { color: var(--muted); text-align: center; padding: 60px 0; }
+    .post-list-notice {
+      background: rgba(128,128,128,.08); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 18px; margin-bottom: 28px; color: var(--muted); font-size: .95rem;
+    }
 
     .back-link { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); }
     .back-link a { color: var(--text); opacity: .6; text-decoration: none; }
@@ -215,14 +219,14 @@
     }
 
     if (!slug) {
-      loadPostList();
+      loadPostList("no_post");
       return;
     }
 
     try {
       var res = await fetch("/api/posts/" + slug);
       if (!res.ok) {
-        loadPostList();
+        loadPostList("post_not_found");
         return;
       }
       var post = await res.json();
@@ -273,7 +277,7 @@
     }
   }
 
-  async function loadPostList() {
+  async function loadPostList(noticeKey) {
     var container = document.getElementById("postContainer");
     try {
       var res = await fetch("/api/posts");
@@ -281,13 +285,14 @@
       var posts = await res.json();
       document.getElementById("commentSection").style.display = "none";
       document.title = tt("all_posts") + " — Hankv Blog";
+      var notice = noticeKey ? '<p class="post-list-notice">' + tt(noticeKey) + '</p>' : '';
       if (!posts.length) {
         container.className = "post-list-container";
-        container.innerHTML = '<h1 class="post-list-title">' + tt("all_posts") + '</h1><p class="no-posts">' + tt("no_posts") + '</p>';
+        container.innerHTML = notice + '<h1 class="post-list-title">' + tt("all_posts") + '</h1><p class="no-posts">' + tt("no_posts") + '</p>';
         return;
       }
       container.className = "post-list-container";
-      container.innerHTML = '<h1 class="post-list-title">' + tt("all_posts") + '</h1><ul class="post-list">' +
+      container.innerHTML = notice + '<h1 class="post-list-title">' + tt("all_posts") + '</h1><ul class="post-list">' +
         posts.map(function(p) {
           var date = p.created_at ? new Date(p.created_at).toLocaleDateString("zh-CN", {year:"numeric",month:"long",day:"numeric"}) : "";
           var meta = [p.category, date].filter(Boolean).join(" · ");
